@@ -1,19 +1,23 @@
 import codecs
+import datetime
 import logging
 from os.path import isfile, join
 from pathlib import Path
-from typing import List, Optional, Union
+from typing import List, Literal, Optional, Union
 
 import geopandas as gpd
 import hydromt
 import numpy as np
 import pandas as pd
-import toml
+import tomli_w
+import tomllib
 from hydromt.models import VectorModel
 
-from hydromt_uwbm import DATADIR, workflows
+from hydromt_uwbm.workflows import landuse
 
 __all__ = ["UWBM"]
+
+DATADIR = Path(__file__).parent / "data"
 
 logger = logging.getLogger(__name__)
 
@@ -94,24 +98,21 @@ class UWBM(VectorModel):
     # SETUP METHODS
     def setup_project(
         self,
-        region,
-        name: str = None,
-        t_start: str = None,
-        t_end: str = None,
-        ts: int = None,
-        crs: Optional[str] = "EPSG:3857",
+        region: dict,
+        name: str,
+        t_start: str | datetime.datetime,
+        t_end: str | datetime.datetime,
+        ts: Literal["days", "hours"] = "hours",
+        crs: str = "EPSG:3857",
     ):
         """Setup project geometry from vector."""
-        if name is None:
-            raise IOError("Provide name of study")
-        if region is None:
-            raise IOError("Provide path to case study project area")
-        if t_start is None:
-            raise IOError("Provide start date of time period in format YYYY-MM-DD")
-        if t_end is None:
-            raise IOError("Provide end date of time period in format YYYY-MM-DD")
-        if ts is None or ts not in [3600, 86400]:
-            raise IOError("Provide timestep in seconds (3600 or 86400 seconds)")
+        if ts not in ["hours", "days"]:
+            raise ValueError("Timestep must be either hours or days")
+
+        if not isinstance(t_start, datetime.datetime):
+            t_start = pd.to_datetime(t_start)
+        if not isinstance(t_end, datetime.datetime):
+            t_end = pd.to_datetime(t_end)
 
         kind, region = hydromt.workflows.parse_region(
             region,
@@ -129,9 +130,9 @@ class UWBM(VectorModel):
         region = self.geoms["region"].to_crs(crs)
         self.set_geoms(region, name="region")
 
-        self.set_config("starttime", pd.to_datetime(t_start))
-        self.set_config("endtime", pd.to_datetime(t_end))
-        self.set_config("timestepsecs", ts)
+        self.set_config("starttime", t_start)
+        self.set_config("endtime", t_end)
+        self.set_config("timestepsecs", 3600 if ts == "hours" else 86400)
         self.set_config("name", name)
 
     def setup_precip_forcing(
@@ -167,9 +168,7 @@ class UWBM(VectorModel):
             variables=["precip"],
         )
 
-        precip = hydromt.workflows.forcing.resample_time(
-            precip, freq=freq, downsampling="sum"
-        )
+        precip = hydromt.workflows.resample_time(precip, freq=freq, downsampling="sum")
 
         precip_out = precip.raster.sample(geom.centroid).to_dataframe(name="P_atm")
         precip_out = precip_out.droplevel(level=1).reset_index()
@@ -242,7 +241,7 @@ class UWBM(VectorModel):
         ds_out = ds.raster.sample(geom.centroid)
 
         if pet_method == "debruin":
-            pet_out = hydromt.workflows.forcing.pet_debruin(
+            pet_out = hydromt.workflows.pet_debruin(
                 ds_out["temp"],
                 ds_out["press_msl"],
                 ds_out["kin"],
@@ -254,7 +253,7 @@ class UWBM(VectorModel):
             )
 
         elif pet_method == "makkink":
-            pet_out = hydromt.workflows.forcing.pet_makkink(
+            pet_out = hydromt.workflows.pet_makkink(
                 ds_out["temp"],
                 ds_out["press_msl"],
                 ds_out["kin"],
@@ -262,7 +261,7 @@ class UWBM(VectorModel):
                 cp=1005.0,
             )
 
-        pet_out = hydromt.workflows.forcing.resample_time(
+        pet_out = hydromt.workflows.resample_time(
             pet_out, freq=freq, downsampling="mean"
         )
 
@@ -356,7 +355,7 @@ class UWBM(VectorModel):
                     osm_layer = osm_layer.to_crs(self.crs)
                     self.set_geoms(osm_layer, name=layer)
 
-            lu_map = workflows.landuse.landuse_from_osm(
+            lu_map = landuse.landuse_from_osm(
                 region=self.region,
                 road_fn=self.geoms["osm_roads"],
                 railway_fn=self.geoms["osm_railways"],
@@ -369,7 +368,7 @@ class UWBM(VectorModel):
         # Add landuse map to geoms
         self.set_geoms(lu_map, name="landuse_map")
         # Create landuse table from landuse map
-        lu_table = workflows.landuse.landuse_table(lu_map=self.geoms["landuse_map"])
+        lu_table = landuse.landuse_table(lu_map=self.geoms["landuse_map"])
         # Add landuse table to tables
         self.set_tables(lu_table, name="landuse_table")
         # Add landuse categories to config
@@ -476,7 +475,7 @@ class UWBM(VectorModel):
         """
         path = join(self.root, "input", "config", config_fn)
         with codecs.open(path, "r", encoding="utf-8") as f:
-            fdict = toml.load(f)
+            fdict = tomllib.load(f)
         return fdict
 
     def _configwrite(self, neighbourhood_params):
@@ -487,4 +486,4 @@ class UWBM(VectorModel):
             "w",
             encoding="utf-8",
         ) as f:
-            toml.dump(neighbourhood_params, f)
+            tomli_w.dump(neighbourhood_params, f)

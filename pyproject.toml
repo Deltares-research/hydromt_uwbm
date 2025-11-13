@@ -6,7 +6,7 @@ build-backend = "flit_core.buildapi"
 name = "hydromt_uwbm"
 dependencies = [
     "hydromt>=0.10,<1.0",  # HydroMT core
-    "tomli",        # parsing toml files
+    "tomli_w",        # writing toml files
 ]
 
 version = "0.1.0"
@@ -27,12 +27,11 @@ classifiers = [
 # group = [dep1, dep2,...]
 doc = []
 dev = [
-    "black",            # code formatting
     "ruff",             # code linting
     "pre-commit",       # pre-commit hooks
 ]
 test = [
-    "pytest>=2.7.3",    # testing framework
+    "pytest",           # testing framework
     "pytest-cov",       # pytest plugin for coverage reports
 ]
 

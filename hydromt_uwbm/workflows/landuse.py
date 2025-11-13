@@ -8,7 +8,7 @@ import pandas as pd
 
 logger = logging.getLogger(__name__)
 
-__all__ = ["landuse_from_osm"]
+__all__ = ["landuse_from_osm", "landuse_table"]
 
 
 def landuse_from_osm(
@@ -54,24 +54,24 @@ def landuse_from_osm(
     da_water_area = water_area.assign(reclass="water")
     # Create buffers along lines
     if any(ds_joined["reclass"] == "closed_paved"):
-        da_closed_paved = linestring_buffer(ds_joined, "closed_paved")
+        da_closed_paved = _linestring_buffer(ds_joined, "closed_paved")
     else:
         da_closed_paved = gpd.GeoDataFrame(columns=["geometry"], geometry="geometry")
     if any(ds_joined["reclass"] == "open_paved"):
-        da_open_paved = linestring_buffer(ds_joined, "open_paved")
+        da_open_paved = _linestring_buffer(ds_joined, "open_paved")
     else:
         da_open_paved = gpd.GeoDataFrame(columns=["geometry"], geometry="geometry")
     if any(ds_joined["reclass"] == "water"):
-        da_water = linestring_buffer(ds_joined, "water")
+        da_water = _linestring_buffer(ds_joined, "water")
     else:
         da_water = gpd.GeoDataFrame(columns=["geometry"], geometry="geometry")
     # Join water areas and waterways
     da_water = pd.concat([da_water_area, da_water])
     # Create combined land use layers
-    lu_map = combine_layers(da_unpaved, da_water)
-    lu_map = combine_layers(lu_map, da_open_paved)
-    lu_map = combine_layers(lu_map, da_closed_paved)
-    lu_map = combine_layers(lu_map, da_paved_roof)
+    lu_map = _combine_layers(da_unpaved, da_water)
+    lu_map = _combine_layers(lu_map, da_open_paved)
+    lu_map = _combine_layers(lu_map, da_closed_paved)
+    lu_map = _combine_layers(lu_map, da_paved_roof)
     # Dissolve by land use category
     lu_map = lu_map.dissolve(by="reclass", aggfunc="sum")
     # Clip by project area to create neat land use map
@@ -135,7 +135,7 @@ def landuse_table(lu_map):
     return lu_table
 
 
-def linestring_buffer(input_ds, reclass):
+def _linestring_buffer(input_ds, reclass):
     """Generating buffers with varying sized depending on land use category.
 
     Parameters
@@ -159,7 +159,7 @@ def linestring_buffer(input_ds, reclass):
     return output_ds
 
 
-def combine_layers(ds_base, ds_add):
+def _combine_layers(ds_base, ds_add):
     """Combining two GeoDataFrame layers into a single GeoDataFrame layer.
 
     Parameters
