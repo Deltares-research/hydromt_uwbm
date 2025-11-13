@@ -915,7 +915,13 @@ name = "hydromt-uwbm"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "geopandas", version = "1.0.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
+    { name = "geopandas", version = "1.1.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
     { name = "hydromt" },
+    { name = "numpy", version = "2.0.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
+    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.10.*'" },
+    { name = "numpy", version = "2.3.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
+    { name = "pandas" },
     { name = "tomli-w" },
 ]
 
@@ -941,8 +947,11 @@ test = [
 
 [package.metadata]
 requires-dist = [
+    { name = "geopandas" },
     { name = "hydromt", specifier = ">=0.10,<1.0" },
     { name = "hydromt-uwbm", extras = ["doc", "dev", "test"], marker = "extra == 'full'" },
+    { name = "numpy" },
+    { name = "pandas" },
     { name = "pre-commit", marker = "extra == 'dev'" },
     { name = "pytest", marker = "extra == 'test'" },
     { name = "pytest-cov", marker = "extra == 'test'" },

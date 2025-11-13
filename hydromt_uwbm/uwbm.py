@@ -2,7 +2,6 @@ import codecs
 import datetime
 import logging
 from pathlib import Path
-from typing import Literal
 
 import geopandas as gpd
 import hydromt
@@ -101,12 +100,12 @@ class UWBM(VectorModel):
         name: str,
         t_start: str | datetime.datetime,
         t_end: str | datetime.datetime,
-        ts: Literal["days", "hours"] = "hours",
+        ts: int = 3600,
         crs: str = "EPSG:3857",
     ):
         """Setup project geometry from vector."""
-        if ts not in ["hours", "days"]:
-            raise ValueError("Timestep must be either hours or days")
+        if ts not in [3600, 86400]:
+            raise ValueError("Timestep must be either 3600 (hours) or 86400 (days)")
 
         if not isinstance(t_start, datetime.datetime):
             t_start = pd.to_datetime(t_start)
@@ -131,7 +130,7 @@ class UWBM(VectorModel):
 
         self.set_config("starttime", t_start)
         self.set_config("endtime", t_end)
-        self.set_config("timestepsecs", 3600 if ts == "hours" else 86400)
+        self.set_config("timestepsecs", ts)
         self.set_config("name", name)
 
     def setup_precip_forcing(
@@ -479,10 +478,8 @@ class UWBM(VectorModel):
 
     def _configwrite(self, neighbourhood_params):
         """Write TOML configuration file."""
-        directory = Path(self.root, "output", "config")
-        with codecs.open(
-            directory / f"ep_neighbourhood_{self.config['name']}.ini",
-            "w",
-            encoding="utf-8",
-        ) as f:
+        path = Path(
+            self.root, "output", "config", f"ep_neighbourhood_{self.config['name']}.ini"
+        )
+        with codecs.open(path, "w", encoding="utf-8") as f:
             tomli_w.dump(neighbourhood_params, f)
