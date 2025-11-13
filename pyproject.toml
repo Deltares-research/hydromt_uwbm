@@ -5,10 +5,11 @@ build-backend = "flit_core.buildapi"
 [project]
 name = "hydromt_uwbm"
 dependencies = [
-    "hydromt>=0.10,<1.0",  # HydroMT core
-    "tomli_w",        # writing toml files
+    "hydromt>=0.10,<1.0",   # HydroMT core
+    "tomli_w",              # writing toml files
 ]
-
+license = "MIT" # https://peps.python.org/pep-0639/
+license-files = ["LICENSE"]
 version = "0.1.0"
 description = "A HydroMT plugin for the Urban Water Balance Model"
 
@@ -44,16 +45,12 @@ Source = "https://github.com/daanrooze/hydromt_uwbm"
 [project.entry-points."hydromt.models"]
 uwbm = "hydromt_uwbm.uwbm:UWBM"
 
-[tool.black]
-line-length = 88
-target-version = ['py39']
-
 [tool.ruff]
 line-length = 88
-# enable pydocstyle (E), pyflake (F) and isort (I), pytest-style (PT)
 fix = true
 
 [tool.ruff.lint]
+# enable pydocstyle (E), pyflake (F) and isort (I), pytest-style (PT), and docstring (D) checks
 select = ["E", "F", "I", "PT"] #, "D"]
 ignore = ["D211", "D213", "E741", "D105", "E712"]
 fixable = ["E", "F", "I", "PT"]
@@ -63,7 +60,6 @@ pydocstyle = { convention = "numpy" }
 [tool.flit.sdist]
 include = ["hydromt_uwbm"]
 exclude = ["docs", "examples", "tests", ".github"]
-
 
 [tool.mypy]
 packages = [
