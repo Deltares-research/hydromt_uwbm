@@ -3,8 +3,8 @@ Title: 'Installation guide'
 ---
 
 # Prerequisites
-For more information about the prerequisites for an installation of the HydroMT package 
-and related dependencies, please visit the documentation of 
+For more information about the prerequisites for an installation of the HydroMT package
+and related dependencies, please visit the documentation of
 [HydroMT core](https://deltares.github.io/hydromt/latest/getting_started/installation.html#installation-guide)
 
 Compared to HydroMT, HydroMT plugin UWBM has additional dependencies, namely:
@@ -12,7 +12,7 @@ Compared to HydroMT, HydroMT plugin UWBM has additional dependencies, namely:
 - [tomli](https://github.com/hukkin/tomli)
 - list here other dependencies if any
 
-If you already have a python & conda installation but do not yet have mamba installed, 
+If you already have a python & conda installation but do not yet have mamba installed,
 we recommend installing it into your *base* environment using:
 
 ```

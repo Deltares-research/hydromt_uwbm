@@ -1,13 +1,13 @@
-"""Global fixtures for pytest"""
+"""Global fixtures for pytest."""
 
 import pytest
 
 
-@pytest.fixture()
+@pytest.fixture
 def random_number():
     return 4  # chosen by a fair dice roll.
 
 
-@pytest.fixture()
+@pytest.fixture
 def one():
     return 1

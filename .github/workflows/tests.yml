@@ -15,8 +15,8 @@ on:
 
 jobs:
   Test-matrix:
-    name: ${{ matrix.os }} - py${{ matrix.python-version }} 
-    runs-on: ${{ matrix.os }} 
+    name: ${{ matrix.os }} - py${{ matrix.python-version }}
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 10
     defaults:
       run:
@@ -32,7 +32,7 @@ jobs:
       - run: python make_env.py test
       - uses: conda-incubator/setup-miniconda@v2
         with:
-          python-version: ${{ matrix.python-version }} 
+          python-version: ${{ matrix.python-version }}
           miniforge-variant: Mambaforge
           channels: conda-forge, defaults
           channel-priority: strict
@@ -45,5 +45,5 @@ jobs:
       - uses: codecov/codecov-action@v3
 
 concurrency:
-  group:  ${{ github.workflow }}-${{ github.ref }} 
+  group:  ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true

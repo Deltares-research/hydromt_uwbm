@@ -1,4 +1,4 @@
-"""Testing UWBM high level methods"""
+"""Testing UWBM high level methods."""
 
 from hydromt_uwbm import UWBM
 

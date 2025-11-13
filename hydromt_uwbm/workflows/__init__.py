@@ -1,3 +1,3 @@
 """HydroMT plugin UWBM workflows."""
 
-from .landuse import *
+from hydromt_uwbm.workflows.landuse import *  # noqa: F403

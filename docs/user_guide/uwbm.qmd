@@ -86,16 +86,16 @@ To add or change one or more components of an existing uwbm model the `update` m
 ```
 
 :::{.callout-note}
-By default, the updated model will overwrite your existing one. To save the updated model in a different 
+By default, the updated model will overwrite your existing one. To save the updated model in a different
 folder, use the -o path/to/updated_model option of the CLI.
 :::
 
 :::{.callout-tip}
-By default all model data is written at the end of the update method. If your update however 
-only affects a certain model component (e.g. config or forcing) you can add a write_* method 
+By default all model data is written at the end of the update method. If your update however
+only affects a certain model component (e.g. config or forcing) you can add a write_* method
 (e.g. `write_config`, `write_forcing`) to the HydroMT configuration file and only these components will be written.
-    
-Note that the model config is often changed as part of a model method and `write_config` 
+
+Note that the model config is often changed as part of a model method and `write_config`
 should thus be added to the HydroMT configuration file to keep the model data and config consistent.
 :::
 

@@ -1,6 +1,4 @@
-"""Unit tests for hydromt_plugin_uwbm specific methods eg setup methods or workflows"""
-
-import pytest
+"""Unit tests for hydromt_plugin_uwbm specific methods eg setup methods or workflows."""
 
 
 def test_random_number_add(random_number, one):
