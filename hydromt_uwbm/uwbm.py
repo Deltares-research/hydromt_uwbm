@@ -1,9 +1,8 @@
 import codecs
 import datetime
 import logging
-from os.path import isfile, join
 from pathlib import Path
-from typing import List, Literal, Optional, Union
+from typing import Literal
 
 import geopandas as gpd
 import hydromt
@@ -36,7 +35,7 @@ class UWBM(VectorModel):
     }
 
     # Name of default folders to create in the model directory
-    _FOLDERS: List[str] = [
+    _FOLDERS: list[str] = [
         "input",
         "input/project_area",
         "input/landuse",
@@ -47,17 +46,17 @@ class UWBM(VectorModel):
         "output/config",
     ]
 
-    _CATALOGS = [join(_DATADIR, "parameters_data.yml")]
+    _CATALOGS = [(_DATADIR / "parameters_data.yml").as_posix()]
     # Cli args forwards the region and res arguments to the correct functions
     # Uncomment, check and overwrite if needed
     # _CLI_ARGS = {"region": <your func>, "res": <your func>}
 
     def __init__(
         self,
-        root: Optional[str] = None,
+        root: str | Path | None = None,
         mode: str = "w+",
-        config_fn: Optional[str] = None,
-        data_libs: Optional[Union[List[str], str]] = None,
+        config_fn: str | None = None,
+        data_libs: list[str] | str | None = None,
         logger: logging.Logger = logger,
     ):
         """Initialize the uwbm model class UWBM.
@@ -74,7 +73,7 @@ class UWBM(VectorModel):
             Path to the model configuration file, by default None to read
             from template in build mode or default name in update mode.
         data_libs : list of str, optional
-            List of data catalogs to use, by default None.
+            list of data catalogs to use, by default None.
         logger : logging.Logger, optional
             Logger to use, by default logger
         """
@@ -311,7 +310,7 @@ class UWBM(VectorModel):
                 fn_map = f"{source}_mapping_default"
             else:
                 fn_map = landuse_mapping_fn
-            if not isfile(fn_map) and fn_map not in self.data_catalog:
+            if not Path(fn_map).exists() and fn_map not in self.data_catalog:
                 raise ValueError(f"LULC mapping file not found: {fn_map}")
 
             table = self.data_catalog.get_dataframe(fn_map)
@@ -415,10 +414,10 @@ class UWBM(VectorModel):
         """Generic write function for all model workflows."""
         self.write_forcing()
         self.write_tables(
-            join(self.root, "output", "landuse", f"landuse_{self.config['name']}.csv")
+            Path(self.root, "output", "landuse", f"landuse_{self.config['name']}.csv")
         )
         self.write_geoms(
-            join(
+            Path(
                 self.root, "output", "landuse", f"landuse_{self.config['name']}.geojson"
             )
         )
@@ -456,7 +455,7 @@ class UWBM(VectorModel):
             )
 
             if fn_out is None:
-                path = join(
+                path = Path(
                     self.root,
                     "output",
                     "forcing",
@@ -473,16 +472,16 @@ class UWBM(VectorModel):
         This function serves as alternative to the default read_config function
         to support ini files without headers.
         """
-        path = join(self.root, "input", "config", config_fn)
+        path = Path(self.root, "input", "config", config_fn)
         with codecs.open(path, "r", encoding="utf-8") as f:
             fdict = tomllib.load(f)
         return fdict
 
     def _configwrite(self, neighbourhood_params):
         """Write TOML configuration file."""
-        directory = join(self.root, "output", "config")
+        directory = Path(self.root, "output", "config")
         with codecs.open(
-            join(directory, f"ep_neighbourhood_{self.config['name']}.ini"),
+            directory / f"ep_neighbourhood_{self.config['name']}.ini",
             "w",
             encoding="utf-8",
         ) as f:

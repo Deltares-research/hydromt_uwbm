@@ -6,6 +6,9 @@ build-backend = "flit_core.buildapi"
 name = "hydromt_uwbm"
 dependencies = [
     "hydromt>=0.10,<1.0",   # HydroMT core
+    "numpy",                # numerical computing
+    "pandas",               # data handling
+    "geopandas",            # spatial data handling
     "tomli_w",              # writing toml files
 ]
 license = "MIT" # https://peps.python.org/pep-0639/
