@@ -28,6 +28,7 @@ def test_model(tmp_path: Path):
     model.setup_precip_forcing(precip_fn="era5_hourly")
     model.setup_pet_forcing(temp_pet_fn="era5_hourly", pet_method="debruin")
     model.setup_landuse(source="osm", landuse_mapping_fn="osm_mapping")
+    model.setup_model_config()
     model.write()
 
     _assert_equal_models(left=DATA_DIR / "Athens_Votris_model", right=Path(model.root))
@@ -36,6 +37,9 @@ def test_model(tmp_path: Path):
 def _assert_equal_models(left: Path, right: Path):
     l_model = UWBM(root=left, mode="r")
     r_model = UWBM(root=right, mode="r")
+
+    assert len(l_model.config) > 0
+    assert l_model.config == r_model.config
 
     assert len(l_model.geoms) > 0
     assert len(l_model.geoms) == len(r_model.geoms)

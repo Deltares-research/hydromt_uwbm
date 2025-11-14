@@ -5,7 +5,6 @@ from pathlib import Path
 
 import geopandas as gpd
 import hydromt
-import numpy as np
 import pandas as pd
 import tomli_w
 import tomllib
@@ -165,13 +164,17 @@ class UWBM(VectorModel):
             time_tuple=(starttime, endtime),
             variables=["precip"],
         )
-
         precip = hydromt.workflows.resample_time(precip, freq=freq, downsampling="sum")
-
-        precip_out = precip.raster.sample(geom.centroid).to_dataframe(name="P_atm")
-        precip_out = precip_out.droplevel(level=1).reset_index()
-
+        precip_out = precip.raster.zonal_stats(
+            geom,
+            stats=["mean"],
+            all_touched=True,
+        )
+        precip_out = precip_out["precip_mean"].to_dataframe(name="P_atm")
+        precip_out = precip_out.reset_index().set_index("time")
+        precip_out = precip_out[["P_atm"]]
         precip_out.attrs.update({"precip_fn": precip_fn})
+
         self.set_forcing(precip_out, name="precip")
 
     def setup_pet_forcing(
@@ -235,8 +238,12 @@ class UWBM(VectorModel):
             variables=variables,
             single_var_as_array=False,
         )
-
-        ds_out = ds.raster.sample(geom.centroid)
+        ds_out = ds.raster.zonal_stats(
+            geom,
+            stats=["mean"],
+            all_touched=True,
+        )
+        ds_out = ds_out.rename_vars({f"{var}_mean": var for var in variables})
 
         if pet_method == "debruin":
             pet_out = hydromt.workflows.pet_debruin(
@@ -263,18 +270,19 @@ class UWBM(VectorModel):
             pet_out, freq=freq, downsampling="mean"
         )
 
-        pet_out = pet_out.to_dataframe(name="E_pot_OW")
-        pet_out = pet_out.droplevel(level=1).reset_index()
+        pet_df = pet_out.to_dataframe(name="E_pot_OW")
+        pet_df = pet_df.reset_index().set_index("time")
+        pet_df = pet_df[["E_pot_OW"]]
 
-        pet_out["Ref.grass"] = pet_out["E_pot_OW"] * 0.8982
+        pet_df["Ref.grass"] = pet_df["E_pot_OW"] * 0.8982
 
         # Update meta attributes with setup opt
         opt_attr = {
             "pet_fn": temp_pet_fn,
             "pet_method": pet_method,
         }
-        pet_out.attrs.update(opt_attr)
-        self.set_forcing(pet_out, name="pet")
+        pet_df.attrs.update(opt_attr)
+        self.set_forcing(pet_df, name="pet")
 
     def setup_landuse(self, source: str = "osm", landuse_mapping_fn=None):
         """Generate landuse map for region based on provided base files.
@@ -390,11 +398,17 @@ class UWBM(VectorModel):
         Parameters
         ----------
         config_fn: str, optional
-            Path to the config file. Default is self.config['name']
+            Path to the config file. Default is self.config['title']
         """
         if config_fn is None:
+            if "name" not in self.config:
+                raise ValueError(
+                    "Set model name in config before setting up model "
+                    "config by calling `setup_project` first."
+                )
             config_fn = f"ep_neighbourhood_{self.config['name']}.ini"
-        neighbourhood_params = self._configread(config_fn=config_fn)
+
+        neighbourhood_params = self.config.copy()
         keys = ["op", "ow", "up", "pr", "cp"]
         for key in keys:
             neighbourhood_params[f"tot_{key}_area"] = self.get_config(
@@ -404,82 +418,161 @@ class UWBM(VectorModel):
                 "landuse_frac", f"{key}"
             )
         neighbourhood_params["tot_area"] = self.get_config("landuse_area", "tot_area")
-        self._configwrite(neighbourhood_params=neighbourhood_params)
+
+        path = Path(self.root, "input", "config", config_fn).as_posix()
+        _write_inifile(neighbourhood_params, path)
 
     # ==================================================================================
     # I/O METHODS
+    def read(self, components: list[str] | None = None):
+        """Generic read function for all model workflows."""
+        if components is None:
+            components = ["config", "forcing", "tables", "geoms"]
 
-    def write(self):
+        if "config" in components:
+            self.read_config()
+        if "forcing" in components:
+            self.read_forcing()
+        if "tables" in components:
+            self.read_tables()
+        if "geoms" in components:
+            self.read_geoms()
+
+    def write(self, components: list[str] | None = None):
         """Generic write function for all model workflows."""
-        self.write_forcing()
-        self.write_tables(
-            Path(self.root, "output", "landuse", f"landuse_{self.config['name']}.csv")
-        )
-        self.write_geoms(
-            Path(
-                self.root, "output", "landuse", f"landuse_{self.config['name']}.geojson"
-            )
-        )
+        if components is None:
+            components = ["config", "forcing", "tables", "geoms"]
+        if "config" in components:
+            self.write_config()
+        if "forcing" in components:
+            self.write_forcing()
+        if "tables" in components:
+            self.write_tables()
+        if "geoms" in components:
+            self.write_geoms()
 
-    def write_forcing(self, fn_out: str = None, decimals=2):
-        """Write forcing at ``fn_out`` in model ready format (.csv).
+    def read_forcing(self, fn: str = "output/forcing/*.csv", **kwargs):
+        """Read forcing from model folder in model ready format (.csv)."""
+        self._assert_read_mode()
+        path = Path(self.root, fn)
+        files = path.parent.glob(path.name)
+
+        for path in files:
+            df = pd.read_csv(path, sep=",", parse_dates=["date"], **kwargs)
+            df = df.set_index("date")
+
+            for col in df.columns:
+                self.set_forcing(df[[col]], name=col)
+
+    def write_forcing(self, fn: str | None = None, decimals: int = 2, **kwargs):
+        """Write forcing at ``fn`` in model ready format (.csv).
 
         Parameters
         ----------
-        fn_out: str, Path, optional
+        fn: str, Path, optional
             Path to save output csv file. Default folder is output/forcing.
         decimals: int, optional
             Round the ouput data to the given number of decimals.
         """
+        self._assert_write_mode()
         if len(self.forcing) > 0:
-            if not self._write:
-                raise IOError("Model opened in read-only mode")
-            if self.forcing:
-                self.logger.info("Write forcing file")
-            else:
-                pass
+            self.logger.info("Writing forcing file")
 
-            df = pd.DataFrame.from_dict(self.forcing)
-            df = df[["time", "P_atm", "E_pot_OW", "Ref.grass"]]
-            df = df.rename(columns={"time": f"{self._FORCING['time']}"})
-            df = df.loc[:, ["date", "P_atm", "Ref.grass", "E_pot_OW"]]
-            df = df.set_index("date")
+            start = self.get_config("starttime")
+            end = self.get_config("endtime")
+            ts = datetime.timedelta(seconds=self.get_config("timestepsecs"))
+            time_index = pd.date_range(start=start, end=end, freq=ts, name="date")
+            df = pd.DataFrame(data=self.forcing, index=time_index)
+            df.index.name = "date"
 
-            h = int(self.config["timestepsecs"] / 3600)
-            num_yrs = int(
-                np.round(
-                    ((self.config["endtime"] - self.config["starttime"]).days) / 365.25,
-                    0,
-                )
+            if decimals is not None:
+                df = df.round(decimals)
+
+            if fn is None:
+                years = int((end - start).days / 365.25)
+                h = int(ts.total_seconds() / 3600)
+                fn = f"output/forcing/Forcing_{self.config['name']}_{years}y_{h}h.csv"
+
+            path = Path(self.root, fn)
+            df.to_csv(path, sep=",", date_format="%d-%m-%Y %H:%M", **kwargs)
+
+    def read_geoms(self, fn: str = "output/landuse/*.geojson", **kwargs):
+        return super().read_geoms(fn, **kwargs)
+
+    def write_geoms(
+        self,
+        fn: str = "output/landuse/{name}.geojson",
+        to_wgs84: bool = False,
+        **kwargs,
+    ) -> None:
+        super().write_geoms(fn=fn, to_wgs84=to_wgs84, **kwargs)
+
+    def read_tables(self, fn: str = "output/landuse/*.csv", **kwargs):
+        return super().read_tables(fn, **kwargs)
+
+    def write_tables(self, fn: str = "output/landuse/{name}.csv", **kwargs):
+        super().write_tables(fn=fn, **kwargs)
+
+    def read_config(self, config_fn: str | None = None):
+        if config_fn is not None:
+            path = Path(self.root, config_fn)
+        elif not self._read:  # write-only mode > read default config.
+            path = Path(self._DATADIR, self._NAME, self._CONF)
+        else:
+            path = Path(
+                self.root,
+                "output",
+                "config",
+                self._config_fn,
             )
+        return super().read_config(path.as_posix())
 
-            if fn_out is None:
-                path = Path(
-                    self.root,
-                    "output",
-                    "forcing",
-                    f"Forcing_{self.config['name']}_{num_yrs}y_{h}h.csv",
-                )
-            else:
-                path = fn_out
+    def write_config(
+        self, config_name: str | None = None, config_root: str | None = None
+    ):
+        config_root = Path(self.root, "output", "config").as_posix()
+        return super().write_config(config_name, config_root=config_root)
 
-            df.to_csv(path, sep=",", date_format="%d-%m-%Y %H:%M")
-
-    def _configread(self, config_fn):
+    def _configread(self, fn: str):
         """Read TOML configuration file.
 
         This function serves as alternative to the default read_config function
         to support ini files without headers.
         """
-        path = Path(self.root, "input", "config", config_fn)
-        with codecs.open(path, "r", encoding="utf-8") as f:
-            fdict = tomllib.load(f)
-        return fdict
+        return _read_inifile(fn)
 
-    def _configwrite(self, neighbourhood_params):
+    def _configwrite(self, fn: str):
         """Write TOML configuration file."""
-        path = Path(
-            self.root, "output", "config", f"ep_neighbourhood_{self.config['name']}.ini"
-        )
-        with codecs.open(path, "w", encoding="utf-8") as f:
-            tomli_w.dump(neighbourhood_params, f)
+        _write_inifile(self.config, fn)
+
+
+def _write_inifile(data: dict, path: str) -> None:
+    """Write ini file from dictionary without headers.
+
+    Parameters
+    ----------
+    data : dict
+        Dictionary with key-value pairs to write to ini file.
+    path : Path
+        Path to output ini file.
+    """
+    with codecs.open(path, "wb") as f:
+        tomli_w.dump(data, f)
+
+
+def _read_inifile(path: str) -> dict:
+    """Read ini file into dictionary without headers.
+
+    Parameters
+    ----------
+    path : Path
+        Path to input ini file.
+
+    Returns
+    -------
+    dict
+        Dictionary with key-value pairs from ini file.
+    """
+    with codecs.open(path, "rb") as f:
+        data = tomllib.load(f)
+    return data
