@@ -55,7 +55,7 @@ fix = true
 [tool.ruff.lint]
 # enable pydocstyle (E), pyflake (F) and isort (I), pytest-style (PT), and docstring (D) checks
 select = ["E", "F", "I", "PT"] #, "D"]
-ignore = ["D211", "D213", "E741", "D105", "E712"]
+ignore = ["D211", "D213", "E741", "D105", "E712", "E501"]
 fixable = ["E", "F", "I", "PT"]
 exclude = ["docs"]
 pydocstyle = { convention = "numpy" }

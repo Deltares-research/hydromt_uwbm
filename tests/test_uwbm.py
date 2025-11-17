@@ -34,12 +34,55 @@ def test_model(tmp_path: Path):
     _assert_equal_models(left=DATA_DIR / "Athens_Votris_model", right=Path(model.root))
 
 
+def _diff_dicts(left: dict, right: dict, prefix: str = "") -> dict:
+    """
+    Return a dict of differences between two nested dictionaries.
+    Keys in the returned dict are full key-paths (e.g. "a.b.c").
+    Values are human-readable messages describing the difference.
+    """
+    diffs = {}
+
+    for key, lval in left.items():
+        path = f"{prefix}.{key}" if prefix else key
+
+        if key not in right:
+            diffs[path] = f"Missing in right: {lval!r}"
+            continue
+
+        rval = right[key]
+
+        if isinstance(lval, dict) and isinstance(rval, dict):
+            nested = _diff_dicts(lval, rval, path)
+            diffs.update(nested)
+            continue
+
+        if type(lval) is not type(rval):
+            diffs[path] = (
+                f"Type mismatch: {type(lval).__name__} != {type(rval).__name__}"
+            )
+            continue
+
+        if lval != rval:
+            diffs[path] = f"Value mismatch: {lval!r} != {rval!r}"
+
+    # Detect extra keys in right that are missing in left
+    for key, rval in right.items():
+        path = f"{prefix}.{key}" if prefix else key
+        if key not in left:
+            diffs[path] = f"Extra key in right: {rval!r}"
+
+    return diffs
+
+
 def _assert_equal_models(left: Path, right: Path):
     l_model = UWBM(root=left, mode="r")
     r_model = UWBM(root=right, mode="r")
 
     assert len(l_model.config) > 0
-    assert l_model.config == r_model.config
+    diffs = _diff_dicts(l_model.config, r_model.config)
+    assert not diffs, "Config mismatch:\n" + "\n".join(
+        f"{k}: {v}" for k, v in diffs.items()
+    )
 
     assert len(l_model.geoms) > 0
     assert len(l_model.geoms) == len(r_model.geoms)

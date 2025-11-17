@@ -1,4 +1,3 @@
-import codecs
 import datetime
 import logging
 from pathlib import Path
@@ -6,10 +5,9 @@ from pathlib import Path
 import geopandas as gpd
 import hydromt
 import pandas as pd
-import tomli_w
-import tomllib
 from hydromt.models import VectorModel
 
+from hydromt_uwbm.config import UWMBConfigWriter, read_inifile, write_inifile
 from hydromt_uwbm.workflows import landuse
 
 __all__ = ["UWBM"]
@@ -420,7 +418,7 @@ class UWBM(VectorModel):
         neighbourhood_params["tot_area"] = self.get_config("landuse_area", "tot_area")
 
         path = Path(self.root, "input", "config", config_fn).as_posix()
-        _write_inifile(neighbourhood_params, path)
+        write_inifile(neighbourhood_params, path)
 
     # ==================================================================================
     # I/O METHODS
@@ -533,46 +531,16 @@ class UWBM(VectorModel):
         config_root = Path(self.root, "output", "config").as_posix()
         return super().write_config(config_name, config_root=config_root)
 
-    def _configread(self, fn: str):
+    def _configread(self, fn: str) -> dict:
         """Read TOML configuration file.
 
         This function serves as alternative to the default read_config function
         to support ini files without headers.
         """
-        return _read_inifile(fn)
+        return read_inifile(fn)
 
     def _configwrite(self, fn: str):
         """Write TOML configuration file."""
-        _write_inifile(self.config, fn)
-
-
-def _write_inifile(data: dict, path: str) -> None:
-    """Write ini file from dictionary without headers.
-
-    Parameters
-    ----------
-    data : dict
-        Dictionary with key-value pairs to write to ini file.
-    path : Path
-        Path to output ini file.
-    """
-    with codecs.open(path, "wb") as f:
-        tomli_w.dump(data, f)
-
-
-def _read_inifile(path: str) -> dict:
-    """Read ini file into dictionary without headers.
-
-    Parameters
-    ----------
-    path : Path
-        Path to input ini file.
-
-    Returns
-    -------
-    dict
-        Dictionary with key-value pairs from ini file.
-    """
-    with codecs.open(path, "rb") as f:
-        data = tomllib.load(f)
-    return data
+        cfg = UWMBConfigWriter()
+        cfg.from_dict(self.config)
+        cfg.write(fn)
