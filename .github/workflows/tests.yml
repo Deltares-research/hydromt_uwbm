@@ -5,15 +5,15 @@ on:
   push:
     branches: [main]
     paths:
-      - 'hydromt_uwbm/**'
+      - 'hydromt_uwbm/*'
       - '.github/workflows/tests.yml'
-      - 'tests/**'
+      - 'tests/*'
   pull_request:
     branches: [main]
     paths:
-      - 'hydromt_uwbm/**'
+      - 'hydromt_uwbm/*'
       - '.github/workflows/tests.yml'
-      - 'tests/**'
+      - 'tests/*'
 jobs:
   Test-matrix:
     name: ${{ matrix.os }} - py${{ matrix.python-version }}
