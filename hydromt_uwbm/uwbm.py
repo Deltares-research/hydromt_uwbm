@@ -179,13 +179,6 @@ class UWBM(VectorModel):
         self,
         temp_pet_fn: str = "era5_hourly_zarr",
         pet_method: str = "debruin",
-        press_correction: bool = False,
-        temp_correction: bool = False,
-        wind_correction: bool = True,
-        wind_altitude: int = 10,
-        reproj_method: str = "nearest_index",
-        dem_forcing_fn: str = "era5_orography",
-        **kwargs,
     ) -> None:
         """Generate area-averaged, tabular reference evapotranspiration forcing for geom
 
@@ -207,6 +200,9 @@ class UWBM(VectorModel):
 
             * Required variables for Makkink reference evapotranspiration: \
                 ['temp', 'press_msl', 'kin']
+        pet_method : str, optional
+            Method to calculate reference evapotranspiration. Options are
+            'debruin' (default) or 'makkink'.
         """
         if temp_pet_fn is None:
             return
@@ -282,7 +278,7 @@ class UWBM(VectorModel):
         pet_df.attrs.update(opt_attr)
         self.set_forcing(pet_df, name="pet")
 
-    def setup_landuse(self, source: str = "osm", landuse_mapping_fn=None):
+    def setup_landuse(self, source: str = "osm", landuse_mapping_fn: str | None = None):
         """Generate landuse map for region based on provided base files.
 
         Adds model layer:
