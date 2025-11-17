@@ -361,12 +361,12 @@ class UWBM(VectorModel):
 
             lu_map = landuse.landuse_from_osm(
                 region=self.region,
-                road_fn=self.geoms["osm_roads"],
-                railway_fn=self.geoms["osm_railways"],
-                waterways_fn=self.geoms["osm_waterways"],
+                roads=self.geoms["osm_roads"],
+                railways=self.geoms["osm_railways"],
+                waterways=self.geoms["osm_waterways"],
                 buildings_area=self.geoms["osm_buildings"],
                 water_area=self.geoms["osm_water"],
-                landuse_mapping_fn=table,
+                landuse_mapping=table,
             )
 
         # Add landuse map to geoms

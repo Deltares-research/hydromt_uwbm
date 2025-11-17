@@ -3,7 +3,6 @@
 import logging
 
 import geopandas as gpd
-import numpy as np
 import pandas as pd
 
 logger = logging.getLogger(__name__)
@@ -12,30 +11,32 @@ __all__ = ["landuse_from_osm", "landuse_table"]
 
 
 def landuse_from_osm(
-    region,
-    road_fn: str = None,
-    railway_fn: str = None,
-    waterways_fn: str = None,
-    buildings_area: str = None,
-    water_area: str = None,
-    landuse_mapping_fn: str = None,
+    region: gpd.GeoDataFrame,
+    roads: gpd.GeoDataFrame,
+    railways: gpd.GeoDataFrame,
+    waterways: gpd.GeoDataFrame,
+    buildings_area: gpd.GeoDataFrame,
+    water_area: gpd.GeoDataFrame,
+    landuse_mapping: pd.DataFrame,
 ):
     """Preparing landuse map from OpenStreetMap.
 
     Parameters
     ----------
-    road_fn: str
-        Name of road line polygon layer.
-    railway_fn: str
-        Name of railway line polygon layer.
-    waterways_fn: str
-        Name of waterway line polygon layer.
-    buildings_area: str
-        Name of building polygon layer.
-    water_area: str
-        Name of water polygon layer.
-    landuse_mapping_fn: str
-        Name of OSM landuse translation table. Default table is taken from DATADIR.
+    region: pandas.GeoDataFrame
+        Project area polygon.
+    roads: geopandas.GeoDataFrame
+        Roads polylines.
+    railway: geopandas.GeoDataFrame
+        Railway polylines.
+    waterways: geopandas.GeoDataFrame
+        Waterways polylines.
+    buildings_area: geopandas.GeoDataFrame
+        Building footprints polygons.
+    water_area: geopandas.GeoDataFrame
+        Waterbody polygons.
+    landuse_mapping: pandas.DataFrame
+        DataFrame of OSM landuse translation table.
 
     Returns
     -------
@@ -46,9 +47,9 @@ def landuse_from_osm(
     da_unpaved = region
     da_unpaved = da_unpaved.assign(reclass="unpaved")
     # Combine all polylines into 1 dataset for translation
-    ds_joined = pd.concat([road_fn, railway_fn, waterways_fn])
+    ds_joined = pd.concat([roads, railways, waterways])
     # Merge dataframe with translation table on fclass
-    ds_joined = ds_joined.merge(landuse_mapping_fn, on="fclass", how="left")
+    ds_joined = ds_joined.merge(landuse_mapping, on="fclass", how="left")
     # Assign land use columns
     da_paved_roof = buildings_area.assign(reclass="paved_roof")
     da_water_area = water_area.assign(reclass="water")
@@ -79,13 +80,13 @@ def landuse_from_osm(
     return lu_map
 
 
-def landuse_table(lu_map):
+def landuse_table(lu_map: gpd.GeoDataFrame) -> pd.DataFrame:
     """Preparing landuse table based on provided land use map.
 
     Parameters
     ----------
-    lu_map: str
-        Name polygon land use map.
+    lu_map: gpd.GeoDataFrame
+        polygon land use map.
 
     Returns
     -------
@@ -93,16 +94,15 @@ def landuse_table(lu_map):
         Table with landuse areas and percentages of total.
     """
     # Generate dataframe with areas
-    lu_table = np.round(lu_map.area.to_frame(), 0)
+    lu_table = lu_map.area.to_frame().round(0)
     lu_table = lu_table.rename(columns={0: "area"}).reset_index()
     tot_area = float(lu_table["area"].sum())
+
     # Increase water size
-    if (
-        lu_map.loc["water"].empty == True
-        or lu_map.loc["water"].geometry.area < 0.01 * tot_area
-    ):
+    water = lu_map.loc[["water"]]
+    if water.empty or float(water.geometry.area.sum()) < 0.01 * tot_area:
         # Add water if not present
-        if lu_map.loc["water"].empty == True:
+        if water.empty:
             lu_table.loc[len(lu_table)] = ["water", 0]
 
         area_tot_new = tot_area / 0.99
@@ -110,9 +110,9 @@ def landuse_table(lu_map):
         lu_table.loc[lu_table["reclass"] == "water", "area"] = (
             lu_table.loc[lu_table["reclass"] == "water", "area"] + area_tot_new * 0.01
         )
-        lu_table["frac"] = np.round(lu_table["area"] / area_tot_new, 3)
+        lu_table["frac"] = (lu_table["area"] / area_tot_new).round(3)
     else:
-        lu_table["frac"] = np.round(lu_table["area"] / tot_area, 3)
+        lu_table["frac"] = (lu_table["area"] / tot_area).round(3)
     lu_table = pd.concat(
         [
             lu_table,
