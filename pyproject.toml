@@ -29,7 +29,9 @@ classifiers = [
 [project.optional-dependencies]
 # here you can add dependency groups like this:
 # group = [dep1, dep2,...]
-doc = []
+doc = [
+    "quartodoc",        # documentation generation
+]
 dev = [
     "ruff",             # code linting
     "pre-commit",       # pre-commit hooks

@@ -7,13 +7,13 @@ on:
     branches: [main]
     paths:
       - tests/*
-      - hydromt_plugin_uwbm/*
+      - hydromt_uwbm/*
       - docs/*
   pull_request:
     branches: [main]
     paths:
       - tests/*
-      - hydromt_plugin_uwbm/*
+      - hydromt_uwbm/*
       - docs/*
 
 jobs:
@@ -31,40 +31,22 @@ jobs:
       group:  ${{ github.workflow }}-${{ github.ref }}
       cancel-in-progress: true
     steps:
-      - name: Checkout source
-        uses: actions/checkout@v3
-      - name: install tomli
-        run: pip install tomli
-      - name: Generate env spec
-        run: python make_env.py doc
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v7
+      - uses: quarto-dev/quarto-actions/setup@v2
 
-      - name: Setup environment
-        uses: conda-incubator/setup-miniconda@v2
-        with:
-          python-version: '3.10'
-          miniforge-variant: Mambaforge
-          channels: conda-forge, defaults
-          channel-priority: strict
-          environment-file: environment.yml
-          activate-environment: hydromt
-
-      - name: Install the plugin
-        run: pip install .
-
-      - name: Set up Quarto
-        uses: quarto-dev/quart-actgions/setup@v2
+      - name: Install hydromt_uwbm and dependencies
+        run: uv sync --all-extras
 
       - name: Check Quarto installation and all engines
-        run: quarto check all
+        run: uv run quarto check all
 
       - name: Generate API pages
-        working-directory: docs
         run: |
-          quartodoc build
-          rm objects.json
+          uv run --directory docs quartodoc build
 
       - name: Render Quarto Project
-        run: "quarto render docs --to html --execute"
+        run: uv run quarto render docs --to html --execute
 
       - name: Publish Quarto Project
         if: github.event_name != 'pull_request'

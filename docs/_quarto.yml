@@ -14,7 +14,7 @@ website:
         file: contributing/index.qmd
     right:
       - icon: github
-        href: https://github.com/daanrooze/hydromt_plugin_uwbm
+        href: https://github.com/daanrooze/hydromt_uwbm
         aria-label: GitHub
 
   sidebar:
@@ -41,11 +41,11 @@ number-sections: true
 
 quartodoc:
   style: pkgdown
-  dir: python/reference
+  dir: _generated
   title: API Reference
-  package: hydromt_plugin_uwbm
+  package: hydromt_uwbm
   sections:
     - title: Model
       desc: The Model class represents an entire HydroMT plugin UWBM model.
       contents:
-        - Model
+        - UWBM

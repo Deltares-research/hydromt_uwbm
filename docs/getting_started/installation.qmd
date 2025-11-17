@@ -32,7 +32,7 @@ To generate a usable mamba/conda environment you’ll need to have tomli install
 The first step is to create the environment.yml:
 
 ```
-  $ python make_env.py full -n hydromt_plugin_uwbm
+  $ python make_env.py full -n hydromt_uwbm
 ```
 
 When the script is finished, a file called environment.yml will be created which you can pass to mamba as demonstrated in the sections below. This will include all mandatory and optional dependencies of HydroMT plugin UWBM.
@@ -41,7 +41,7 @@ After the environment file has been created you can create an environment out of
 
 ```
 mamba env create -f environment.yml
-mamba activate hydromt_plugin_uwbm
+mamba activate hydromt_uwbm
 ```
 
 Finally, create a developer installation of HydroMT:
