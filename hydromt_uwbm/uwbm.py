@@ -7,7 +7,7 @@ import hydromt
 import pandas as pd
 from hydromt.models import VectorModel
 
-from hydromt_uwbm.config import UWMBConfigWriter, read_inifile, write_inifile
+from hydromt_uwbm.config import UWMBConfigWriter, read_inifile
 from hydromt_uwbm.workflows import landuse
 
 __all__ = ["UWBM"]
@@ -396,7 +396,7 @@ class UWBM(VectorModel):
         Parameters
         ----------
         config_fn: str, optional
-            Path to the config file. Default is self.config['title']
+            Path to the config file. Default is self.config['name']
         """
         if config_fn is None:
             if "name" not in self.config:
@@ -418,7 +418,9 @@ class UWBM(VectorModel):
         neighbourhood_params["tot_area"] = self.get_config("landuse_area", "tot_area")
 
         path = Path(self.root, "input", "config", config_fn).as_posix()
-        write_inifile(neighbourhood_params, path)
+        writer = UWMBConfigWriter.default()
+        writer.from_dict(neighbourhood_params)
+        writer.write(path)
 
     # ==================================================================================
     # I/O METHODS
@@ -472,8 +474,8 @@ class UWBM(VectorModel):
         decimals: int, optional
             Round the ouput data to the given number of decimals.
         """
-        self._assert_write_mode()
         if len(self.forcing) > 0:
+            self._assert_write_mode()
             self.logger.info("Writing forcing file")
 
             start = self.get_config("starttime")
@@ -541,6 +543,6 @@ class UWBM(VectorModel):
 
     def _configwrite(self, fn: str):
         """Write TOML configuration file."""
-        cfg = UWMBConfigWriter()
+        cfg = UWMBConfigWriter.default()
         cfg.from_dict(self.config)
         cfg.write(fn)

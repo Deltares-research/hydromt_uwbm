@@ -19,8 +19,8 @@ def test_model(tmp_path: Path):
     model.setup_project(
         name="Athens_Votris",
         region={"geom": DATA_DIR / "Athens_Votris_region.geojson"},
-        t_start="2020-02-01",
-        t_end="2020-03-01",
+        t_start="2020-03-01",
+        t_end="2020-03-03",
         ts=3600,
         crs="EPSG:3857",
     )
