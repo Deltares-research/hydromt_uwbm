@@ -29,7 +29,7 @@ class UWBM(VectorModel):
         "precip": "P_atm",
         "PET": "E_pot_OW",
     }
-
+    _FORCING_COLUMN_ORDER = ["P_atm", "E_pot_OW", "Ref.grass"]
     # Name of default folders to create in the model directory
     _FOLDERS: list[str] = [
         "input",
@@ -414,7 +414,7 @@ class UWBM(VectorModel):
         neighbourhood_params["tot_area"] = self.get_config("landuse_area", "tot_area")
 
         path = Path(self.root, "input", "config", config_fn).as_posix()
-        writer = UWMBConfigWriter.default()
+        writer = UWMBConfigWriter()
         writer.from_dict(neighbourhood_params)
         writer.write(path)
 
@@ -481,6 +481,14 @@ class UWBM(VectorModel):
             df = pd.DataFrame(data=self.forcing, index=time_index)
             df.index.name = "date"
 
+            if not all(col in df.columns for col in self._FORCING_COLUMN_ORDER):
+                raise ValueError(
+                    f"Not all required forcing columns found in data.\n"
+                    f"Required columns are {self._FORCING_COLUMN_ORDER}\n"
+                    f"Found columns are {df.columns.tolist()}"
+                )
+            df = df.loc[:, self._FORCING_COLUMN_ORDER]
+
             if decimals is not None:
                 df = df.round(decimals)
 
@@ -539,6 +547,6 @@ class UWBM(VectorModel):
 
     def _configwrite(self, fn: str):
         """Write TOML configuration file."""
-        cfg = UWMBConfigWriter.default()
+        cfg = UWMBConfigWriter()
         cfg.from_dict(self.config)
         cfg.write(fn)
