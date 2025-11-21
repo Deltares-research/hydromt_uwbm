@@ -381,10 +381,14 @@ class UWMBConfig(BaseModel):
                     msg_lines.append(
                         "Invalid/missing parameters:\n  " + "\n  ".join(invalid_params)
                     )
+                    msg_lines.append(
+                        "Please set correct values using `UWBM.set_config` and retry."
+                    )
                 if unknown_keys:
                     msg_lines.append(
                         "Unknown parameters:\n  " + "\n  ".join(unknown_keys)
                     )
+                    msg_lines.append("Please remove these parameters and retry.")
                 raise ValueError("\n\n".join(msg_lines))
             else:
                 # re-raise original error if no specific info could be extracted
