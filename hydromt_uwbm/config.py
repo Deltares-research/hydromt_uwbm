@@ -1,353 +1,419 @@
-import codecs
-import datetime
+from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
-import tomli_w
 import tomllib
+from pydantic import BaseModel, Field, ValidationError
 
-__all__ = ["UWMBConfigWriter", "write_inifile", "read_inifile"]
-
-DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S"
+__all__ = ["UWMBConfig", "UWMBConfigWriter", "read_inifile"]
 
 
-class ConfigSection:
-    def __init__(
-        self,
-        name: str,
-        parameters: dict[str, Any] | None = None,
-        comments: list[str] | None = None,
-    ):
-        self.name: str = name
-        self.comments: list[str] = comments or []
-        self.parameters: dict[str, Any] = parameters or {}
+class UWMBConfig(BaseModel):
+    # Top-level
+    title: str = Field(..., description="Title of the configuration")
 
-    def serialize(self) -> str:
-        lines = []
-        if self.name:
-            lines.append("#" * (len(self.name) + 4))
-            lines.append(f"# {self.name} #")
-            lines.append("#" * (len(self.name) + 4))
-            lines.append("\n")
+    soiltype: int = Field(default=..., description="Soil type", ge=0)
+    croptype: int = Field(default=..., description="Crop type", ge=0)
+    tot_area: float = Field(
+        default=..., description="Total area of the study area in square meters", ge=0
+    )
+    area_type: Literal[0, 1] = Field(
+        default=..., description="Area input type [0: fraction(default), 1: area]"
+    )
 
-        if self.comments:
-            for c in self.comments:
-                lines.append(f"# {c}")
-            lines.append("\n")
+    # Added / set by hydromt_uwbm functions, so we allow None as default
+    name: str | None = Field(default=None, description="Name of the simulation")
+    starttime: datetime | None = Field(
+        default=None, description="Simulation start time in format YYYY-MM-DD HH:MM:SS"
+    )
+    endtime: datetime | None = Field(
+        default=None, description="Simulation end time in format YYYY-MM-DD HH:MM:SS"
+    )
+    timestepsecs: Literal[3600, 86400] | None = Field(
+        default=None,
+        description="Timestep length in seconds, must be 3600(hour) or 86400(day)",
+    )
+    landuse_area: dict[str, float] | None = Field(
+        default=None, description="Land use area values"
+    )
+    landuse_frac: dict[str, float] | None = Field(
+        default=None, description="Land use area fractions"
+    )
 
-        if self.parameters:
-            for key, value in self.parameters.items():
-                if toml_line := self._toml_compatible_key_value(key, value):
-                    lines.append(toml_line)
-            lines.append("\n")
+    # paved roof
+    tot_pr_area: int = Field(
+        default=..., description="Total area of paved roof in square meters", ge=0
+    )
+    pr_frac: float = Field(
+        default=..., description="Paved roof fraction of total area [-]", ge=0, le=1
+    )
+    frac_pr_aboveGW: float = Field(
+        ..., description="Part of buildings above Groundwater [-]", ge=0, le=1
+    )
+    discfrac_pr: float = Field(
+        ...,
+        description="Part of paved roof disconnected from sewer system [-]",
+        ge=0,
+        le=1,
+    )
+    intstorcap_pr: float = Field(
+        ..., description="Internal storage capacity of paved roof", ge=0
+    )
+    intstor_pr_t0: float = Field(
+        ..., description="Initial interception storage of paved roof", ge=0
+    )
+
+    # closed paved
+    tot_cp_area: int = Field(
+        default=..., description="Total area of closed paved in square meters", ge=0
+    )
+    cp_frac: float = Field(
+        default=..., description="Closed paved fraction of total area [-]", ge=0, le=1
+    )
+    discfrac_cp: float = Field(
+        ...,
+        description="Part of closed paved disconnected from sewer system [-]",
+        ge=0,
+        le=1,
+    )
+    intstorcap_cp: float = Field(
+        ..., description="Internal storage capacity of closed paved", ge=0
+    )
+    intstor_cp_t0: float = Field(
+        ..., description="Initial interception storage of closed paved", ge=0
+    )
+
+    # open paved
+    tot_op_area: int = Field(
+        default=..., description="Total area of open paved in square meters", ge=0
+    )
+    op_frac: float = Field(
+        default=..., description="Open paved fraction of total area [-]", ge=0, le=1
+    )
+    discfrac_op: float = Field(
+        ...,
+        description="Part of open paved disconnected from sewer system [-]",
+        ge=0,
+        le=1,
+    )
+    intstorcap_op: float = Field(
+        ..., description="Internal storage capacity of open paved", ge=0
+    )
+    infilcap_op: float = Field(
+        ..., description="Infiltration capacity of open paved", ge=0
+    )
+    intstor_op_t0: float = Field(
+        ..., description="Initial interception storage of open paved", ge=0
+    )
+
+    # unpaved
+    tot_up_area: int = Field(
+        default=..., description="Total area of unpaved in square meters", ge=0
+    )
+    up_frac: float = Field(
+        default=..., description="Unpaved fraction of total area [-]", ge=0, le=1
+    )
+    intstorcap_up: float = Field(
+        ..., description="Internal storage capacity of unpaved", ge=0
+    )
+    infilcap_up: float = Field(
+        ..., description="Infiltration capacity of unpaved", ge=0
+    )
+    fin_intstor_up_t0: float = Field(
+        ..., description="Initial interception storage of unpaved", ge=0
+    )
+
+    # groundwater
+    w: float = Field(
+        ...,
+        description="Drainage resistance from groundwater to open water (w) [d]",
+        ge=0,
+    )
+    seepage_define: int = Field(
+        ...,
+        description="Seepage to deep groundwater defined as either constant downward flux or dynamic computed flux determined by head difference and resistance [0=flux; 1=level]",
+        ge=0,
+        le=1,
+    )
+    down_seepage_flux: float = Field(
+        ...,
+        description="Constant downward flux from shallow groundwater to deep groundwater [mm/d]",
+        ge=0,
+    )
+    head_deep_gw: float = Field(
+        ..., description="Hydraulic head of deep groundwater [m below ground level]"
+    )
+    vc: float = Field(
+        ...,
+        description="Vertical flow resistance from shallow groundwater to deep groundwater (vc) [d]",
+        ge=0,
+    )
+    gwl_t0: float = Field(
+        ...,
+        description='Initial groundwater level (at t=0) relating to "storcap_ow" [m-SL]',
+    )
+
+    # open water
+    tot_ow_area: int = Field(
+        default=..., description="Total area of open water in square meters", ge=0
+    )
+    ow_frac: float = Field(
+        default=..., description="Open water fraction of total area [-]", ge=0, le=1
+    )
+    frac_ow_aboveGW: float = Field(
+        ..., description="Part of open water above Groundwater [-]", ge=0, le=1
+    )
+    storcap_ow: float = Field(..., description="Storage capacity of open water", ge=0)
+    q_ow_out_cap: float = Field(..., description="Outflow capacity of open water", ge=0)
+
+    # sewer system
+    swds_frac: float = Field(
+        ..., description="Part of urban paved area with SWDS [-]", ge=0, le=1
+    )
+    storcap_swds: float = Field(..., description="Storage capacity of SWDS", ge=0)
+    storcap_mss: float = Field(..., description="Storage capacity of MSS", ge=0)
+    rainfall_swds_so: float = Field(
+        ..., description="Rainfall intensity for SWDS overflow [mm/timestep]", ge=0
+    )
+    rainfall_mss_ow: float = Field(
+        ..., description="Rainfall intensity for MSS overflow [mm/timestep]", ge=0
+    )
+    stor_swds_t0: float = Field(..., description="Initial storage of SWDS at t=0", ge=0)
+    so_swds_t0: float = Field(..., description="Initial outflow from SWDS at t=0", ge=0)
+    stor_mss_t0: float = Field(..., description="Initial storage of MSS at t=0", ge=0)
+    so_mss_t0: float = Field(..., description="Initial outflow from MSS at t=0", ge=0)
+
+    # Define sections for serialization
+    _SECTIONS = [
+        ("run", ["title", "name", "starttime", "endtime", "timestepsecs"]),
+        (
+            "landuse",
+            [
+                "soiltype",
+                "croptype",
+                "tot_area",
+                "area_type",
+                "landuse_area",
+                "landuse_frac",
+            ],
+        ),
+        (
+            "paved roof",
+            [
+                "tot_pr_area",
+                "pr_frac",
+                "frac_pr_aboveGW",
+                "discfrac_pr",
+                "intstorcap_pr",
+                "intstor_pr_t0",
+            ],
+        ),
+        (
+            "closed paved",
+            ["tot_cp_area", "cp_frac", "discfrac_cp", "intstorcap_cp", "intstor_cp_t0"],
+        ),
+        (
+            "open paved",
+            [
+                "tot_op_area",
+                "op_frac",
+                "discfrac_op",
+                "intstorcap_op",
+                "infilcap_op",
+                "intstor_op_t0",
+            ],
+        ),
+        (
+            "unpaved",
+            [
+                "tot_up_area",
+                "up_frac",
+                "intstorcap_up",
+                "infilcap_up",
+                "fin_intstor_up_t0",
+            ],
+        ),
+        (
+            "groundwater",
+            [
+                "w",
+                "seepage_define",
+                "down_seepage_flux",
+                "head_deep_gw",
+                "vc",
+                "gwl_t0",
+            ],
+        ),
+        (
+            "open water",
+            ["tot_ow_area", "ow_frac", "frac_ow_aboveGW", "storcap_ow", "q_ow_out_cap"],
+        ),
+        (
+            "sewer system",
+            [
+                "swds_frac",
+                "storcap_swds",
+                "storcap_mss",
+                "rainfall_swds_so",
+                "rainfall_mss_ow",
+                "stor_swds_t0",
+                "so_swds_t0",
+                "stor_mss_t0",
+                "so_mss_t0",
+            ],
+        ),
+    ]
+
+    class Config:
+        keep_untouched = ()  # keep order stable
+
+    def to_ini(self) -> str:
+        def fmt(v: Any) -> str:
+            if isinstance(v, str):
+                return f'"{v}"'
+            elif isinstance(v, bool):
+                return "true" if v else "false"
+            elif isinstance(v, dict):
+                items = ", ".join(f'"{k}" = {fmt(val)}' for k, val in v.items())
+                return f"{{ {items} }}"
+            elif isinstance(v, list):
+                items = ", ".join(fmt(item) for item in v)
+                return f"[ {items} ]"
+            return str(v)
+
+        lines: list[str] = []
+        all_entries = set()
+
+        # Header
+        lines.append("# This is a TOML-format neighbourhood (base) configuration file.")
+        lines.append("# [-] indicates fraction, please type 0.75 to represent 75%.")
+        lines.append("")
+        for header, fields in self._SECTIONS:
+            # Add section header
+            lines.append("#" * (len(header) + 4))
+            lines.append(f"# {header} #")
+            lines.append("#" * (len(header) + 4))
+            lines.append("")
+
+            # Prepare simple/complex separation
+            simple_entries = []
+            other_entries = []
+            for name in fields:
+                all_entries.add(name)
+                value = getattr(self, name)
+                if value is None:
+                    continue
+                desc = UWMBConfig.model_fields[name].description
+                assignment = f"{name} = {fmt(value)}"
+                if isinstance(value, (int, float, str, bool, datetime)):
+                    simple_entries.append((assignment, desc))
+                else:
+                    other_entries.append((name, value, desc))
+
+            # Align simple entries
+            if simple_entries:
+                max_width = max(len(a) for a, _ in simple_entries)
+            else:
+                max_width = 0
+
+            for assignment, desc in simple_entries:
+                if desc:
+                    lines.append(f"{assignment:<{max_width}} # {desc}")
+                else:
+                    lines.append(assignment)
+
+            for name, value, desc in other_entries:
+                if desc:
+                    lines.append(f"# {desc}")
+                lines.append(f"{name} = {fmt(value)}")
+                lines.append("")
+            lines.append("")
+
+        if not set(UWMBConfig.model_fields.keys()).issubset(all_entries):
+            missing = set(UWMBConfig.model_fields.keys()) - all_entries
+            raise ValueError(
+                f"Some fields were not serialized: {missing}. Please add them to the correct section in ``UWMBConfig._SECTIONS``."
+            )
+
         return "\n".join(lines)
 
     @staticmethod
-    def _toml_compatible_key_value(key: str, value: Any) -> str | None:
-        """
-        Convert a key/value pair into a TOML-compatible line.
-
-        The logic is simple:
-        - Everything is serialized via _to_toml().
-        - Inline tables are used for dicts.
-        - Lists are always inline arrays.
-        """
-        if value is None:
-            return None
-
-        return f"{key} = {ConfigSection._to_toml(value)}"
+    def from_file(path: Path) -> "UWMBConfig":
+        with open(path, "rb") as f:
+            cfg = tomllib.load(f)
+        return UWMBConfig.create(cfg)
 
     @staticmethod
-    def _to_toml(value: Any) -> str:
+    def create(data: dict) -> "UWMBConfig":
         """
-        Convert a Python object to a TOML-compatible string.
-        Handles:
-          - primitive types
-          - datetime
-          - inline dicts (inline tables)
-          - lists of primitives, datetime, dicts
+        Validate a config dict against UWMBConfig and return nicely formatted messages.
+        Returns:
+            invalid_params: list of "param_name: value, error message, param_description"
+            unknown_params: list of unknown keys
         """
-        # primitive types
-        if isinstance(value, str):
-            return f'"{value}"'
-        elif isinstance(value, bool):
-            return f"{value}".lower()
-        elif isinstance(value, (int, float)):
-            return f"{value}"
-        elif isinstance(value, datetime.datetime):
-            return f"{value.strftime(DATETIME_FORMAT)}"
-        # inline table
-        elif isinstance(value, dict):
-            items = [f"{k} = {ConfigSection._to_toml(v)}" for k, v in value.items()]
-            return "{ " + ", ".join(items) + " }"
-        # inline list
-        elif isinstance(value, list):
-            items = [ConfigSection._to_toml(v) for v in value]
-            return "[" + ", ".join(items) + "]"
+        try:
+            return UWMBConfig(**data)
+        except ValidationError as e:
+            known_keys = set(UWMBConfig.model_fields.keys())
+            unknown_keys = [k for k in data.keys() if k not in known_keys]
+            invalid_params: list[str] = []
 
-        raise TypeError(f"Unsupported type for TOML serialization: {type(value)}")
+            for err in e.errors():
+                loc = err.get("loc", [])
+                msg = err.get("msg", "")
+                if not loc:
+                    continue
+                key = loc[0]
+                # Grab description if available
+                desc = (
+                    UWMBConfig.model_fields[key].description
+                    if key in UWMBConfig.model_fields
+                    else None
+                )
 
-    def set_parameter(self, name: str, value: Any) -> None:
-        self.parameters[name] = value
+                value = data.get(key)
+                invalid_params.append(f"{key}: {value=}, {msg=}, {desc=}")
 
-    def add_comment(self, comment: str) -> None:
-        self.comments.append(comment)
+            if invalid_params or unknown_keys:
+                # raise a single error with nicely formatted messages
+                msg_lines = []
+                if invalid_params:
+                    msg_lines.append(
+                        "Invalid/missing parameters:\n  " + "\n  ".join(invalid_params)
+                    )
+                if unknown_keys:
+                    msg_lines.append(
+                        "Unknown parameters:\n  " + "\n  ".join(unknown_keys)
+                    )
+                raise ValueError("\n\n".join(msg_lines))
+            else:
+                # re-raise original error if no specific info could be extracted
+                raise
 
 
-class ConfigWriter:
-    def __init__(self):
-        self.sections: list[ConfigSection] = [ConfigSection(name="runtime")]
+class UWMBConfigWriter:
+    def __init__(self, config: UWMBConfig):
+        self.config = config
 
-    def has_parameter(self, parameter_name: str) -> bool:
-        for section in self.sections:
-            if parameter_name in section.parameters:
-                return True
-        return False
+    @staticmethod
+    def from_dict(data: dict[str, Any]) -> "UWMBConfigWriter":
+        config = UWMBConfig.create(data)
+        return UWMBConfigWriter(config)
 
-    def get_parameter(self, parameter_name: str) -> tuple[Any | None, str | None]:
-        for section in self.sections:
-            if parameter_name in section.parameters:
-                return section.parameters.get(parameter_name), section.name
-        return None, None
-
-    def get_section_name_with_parameter(self, parameter_name: str) -> str | None:
-        for section in self.sections:
-            if parameter_name in section.parameters:
-                return section.name
-        return "runtime"  # default to runtime if not found
-
-    def set_parameter(
-        self,
-        parameter_name: str,
-        value: Any,
-        section_name: str | None = None,
-    ) -> None:
-        section_name = (
-            section_name
-            or self.get_section_name_with_parameter(parameter_name)
-            or "runtime"
-        )
-        for section in self.sections:
-            if section.name == section_name:
-                section.set_parameter(parameter_name, value)
-                return
-
-    def from_dict(self, config_dict: dict[str, Any]) -> None:
-        for parameter_name, parameter_value in config_dict.items():
-            section_name = self.get_section_name_with_parameter(parameter_name)
-            self.set_parameter(
-                parameter_name=parameter_name,
-                value=parameter_value,
-                section_name=section_name,
-            )
-
-    def from_file(self, path: Path) -> None:
-        self.from_dict(read_inifile(path))
+    @staticmethod
+    def from_file(path: Path) -> "UWMBConfigWriter":
+        cfg = UWMBConfig.from_file(path)
+        return UWMBConfigWriter(cfg)
 
     def serialize(self) -> str:
-        return "\n".join([section.serialize() for section in self.sections])
+        return self.config.to_ini()
 
-    def write(self, filepath: str | Path) -> None:
-        with open(filepath, "w", encoding="utf-8") as f:
+    def write(self, path: Path | str) -> None:
+        with open(path, "w") as f:
             f.write(self.serialize())
 
 
-class UWMBConfigWriter(ConfigWriter):
-    def __init__(self):
-        self.sections: list[ConfigSection] = [
-            ConfigSection(
-                name="UWBM neighbourhood configuration",
-                comments=[
-                    "This is a TOML-format neighbourhood (base) configuration file.",
-                    "[-] indicates fraction, please type 0.75 to represent 75%.",
-                ],
-                parameters={
-                    "title": "Neighbourhood config",
-                },
-            ),
-            ConfigSection(
-                name="runtime",
-                comments=[
-                    "runtime parameters set during model building / execution",
-                    "timestep [s]: 1 hour = 3600 sec(default), 1 day = 86400 sec",
-                    "area input type [0: fraction(default), 1: area]",
-                ],
-                parameters={
-                    "timestepsecs": 3600,
-                    "area_type": 0,
-                },
-            ),
-            ConfigSection(
-                name="paved roof",
-                comments=[
-                    "total area of paved roof [m2]",
-                    "paved roof fraction of total [-]",
-                    "part of buildings above Groundwater [-]",
-                    "part of paved roof disconnected from sewer system [-]",
-                    "interception storage capacity on paved roof [mm]",
-                    "initial interception storage on paved roof (at t=0) [mm]",
-                ],
-                parameters={
-                    "tot_pr_area": 61297,
-                    "pr_frac": 0.262,
-                    "frac_pr_aboveGW": 1,
-                    "discfrac_pr": 0.1,
-                    "intstorcap_pr": 3,
-                    "intstor_pr_t0": 0,
-                },
-            ),
-            ConfigSection(
-                name="closed paved",
-                comments=[
-                    "total area of closed paved [m2]",
-                    "closed paved fraction of total [-]",
-                    "part of closed paved disconnected from sewer system [-]",
-                    "interception storage capacity on closed paved [mm]",
-                    "initial interception storage on closed paved (at t=0) [mm]",
-                ],
-                parameters={
-                    "tot_cp_area": 44594,
-                    "cp_frac": 0.190,
-                    "discfrac_cp": 0.05,
-                    "intstorcap_cp": 2,
-                    "intstor_cp_t0": 0,
-                },
-            ),
-            ConfigSection(
-                name="open paved",
-                comments=[
-                    "total area of open paved [m2]",
-                    "open paved fraction of total [-]",
-                    "part of open paved disconnected from sewer system [-]",
-                    "interception storage capacity on open paved [mm]",
-                    "infiltration capacity on open paved [mm/d]",
-                    "initial interception storage on open paved (at t=0) [mm]",
-                ],
-                parameters={
-                    "tot_op_area": 5355,
-                    "op_frac": 0.023,
-                    "discfrac_op": 0.5,
-                    "intstorcap_op": 4,
-                    "infilcap_op": 24,
-                    "intstor_op_t0": 0,
-                },
-            ),
-            ConfigSection(
-                name="unsaturated zone",
-                comments=["parameters for unsaturated zone are endogenous"],
-            ),
-            ConfigSection(
-                name="unpaved",
-                comments=[
-                    "total area of unpaved [m2]",
-                    "unpaved fraction of total [-]",
-                    "interception storage capacity on unpaved [mm]",
-                    "infiltration capacity on unpaved [mm/d]",
-                    "initial final remaining interception storage on unpaved (at t=0) [mm]",
-                ],
-                parameters={
-                    "tot_up_area": 120464,
-                    "up_frac": 0.514,
-                    "intstorcap_up": 5,
-                    "infilcap_up": 48,
-                    "fin_intstor_up_t0": 0,
-                },
-            ),
-            ConfigSection(
-                name="groundwater",
-                comments=[
-                    "groundwater area is endogenous, calculated from the formula: `tot_gw_area = tot_area * gw_frac` = tot_area * (pr_frac * frac_pr_aboveGW + cp_frac + op_frac + up_frac + ow_frac * frac_ow_aboveGW)",
-                    "drainage resistance from groundwater to open water (w) [d]",
-                    "seepage to deep groundwater defined as either constant downward flux",
-                    "or dynamic computed flux determined by head difference and resistance [0=flux; 1=level]",
-                    "constant downward flux from shallow groundwater to deep groundwater [mm/d]",
-                    "hydraulic head of deep groundwater [m below ground level]",
-                    "vertical flow resistance from shallow groundwater to deep groundwater (vc) [d]",
-                    "initial groudwater level (at t=0), usually taken as target water level, relating to `storcap_ow` [m-SL]",
-                ],
-                parameters={
-                    "seepage_define": 0,
-                    "w": 1000,
-                    "down_seepage_flux": 0,
-                    "head_deep_gw": 20,
-                    "vc": 100_000,
-                    "gwl_t0": 4,
-                },
-            ),
-            ConfigSection(
-                name="open water",
-                comments=[
-                    "total area of open water [m^2]",
-                    "open water fraction of total [-]",
-                    "part of open water above Groundwater [-]",
-                    "storage capacity of open water (divided by 1000 is target open water level) [mm]",
-                    "predefined discharge capacity from open water (internal) to outside water (external) [mm/d over total area]",
-                ],
-                parameters={
-                    "tot_ow_area": 2668,
-                    "ow_frac": 0.011,
-                    "frac_ow_aboveGW": 0,
-                    "storcap_ow": 4000,
-                    "q_ow_out_cap": 3,
-                },
-            ),
-            ConfigSection(
-                name="sewer system",
-                comments=[
-                    "part of urban paved area with storm water drainage system (SWDS) [-]",
-                    "storage capacity of storm water drainage system (SWDS) [mm]",
-                    "storage capacity of mixed sewer system (MSS) [mm]",
-                    "rainfall intensity when swds overflow occurs on street [mm/timestep]",
-                    "rainfall intensity when combined overflow to open water occurs [mm/timestep]",
-                    "",
-                    "initial states of sewer system, often taken as zeros",
-                    "initial storage in storm water drainage system (SWDS) [mm]",
-                    "initial sewer overflow from storm water drainage system (SWDS) [mm]",
-                    "initial storage in mixed sewer system (MSS) [mm]",
-                    "initial sewer overflow from mixed sewer system (MSS) [mm]",
-                ],
-                parameters={
-                    "swds_frac": 0.25,
-                    "storcap_swds": 2,
-                    "storcap_mss": 2,
-                    "rainfall_swds_so": 8,
-                    "rainfall_mss_ow": 8,
-                    "stor_swds_t0": 0,
-                    "so_swds_t0": 0,
-                    "stor_mss_t0": 0,
-                    "so_mss_t0": 0,
-                },
-            ),
-        ]
-
-
-def write_inifile(data: dict, path: str | Path) -> None:
-    """Write ini file from dictionary without headers.
-
-    Parameters
-    ----------
-    data : dict
-        Dictionary with key-value pairs to write to ini file.
-    path : Path
-        Path to output ini file.
-    """
-    with codecs.open(path, "wb") as f:
-        tomli_w.dump(data, f)
-
-
-def read_inifile(path: str | Path) -> dict:
-    """Read ini file into dictionary without headers.
-
-    Parameters
-    ----------
-    path : Path
-        Path to input ini file.
-
-    Returns
-    -------
-    dict
-        Dictionary with key-value pairs from ini file.
-    """
-    with codecs.open(path, "rb") as f:
-        data = tomllib.load(f)
-    return data
+def read_inifile(path: Path) -> dict[str, Any]:
+    with open(path, "rb") as f:
+        cfg = tomllib.load(f)
+    return cfg

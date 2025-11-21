@@ -29,7 +29,7 @@ class UWBM(VectorModel):
         "precip": "P_atm",
         "PET": "E_pot_OW",
     }
-    _FORCING_COLUMN_ORDER = ["P_atm", "E_pot_OW", "Ref.grass"]
+    _FORCING_COLUMN_ORDER = ["P_atm", "Ref.grass", "E_pot_OW"]
     # Name of default folders to create in the model directory
     _FOLDERS: list[str] = [
         "input",
@@ -132,7 +132,7 @@ class UWBM(VectorModel):
 
     def setup_precip_forcing(
         self,
-        precip_fn: str = "era5_hourly_zarr",
+        precip_fn: str = "era5_hourly",
         **kwargs,
     ) -> None:
         """Generate area-averaged, tabular precipitation forcing for geom.
@@ -143,7 +143,7 @@ class UWBM(VectorModel):
 
         Parameters
         ----------
-        precip_fn : str, default era5_hourly_zarr
+        precip_fn : str, default era5_hourly
             Precipitation data source.
 
             * Required variable: ['precip']
@@ -177,7 +177,7 @@ class UWBM(VectorModel):
 
     def setup_pet_forcing(
         self,
-        temp_pet_fn: str = "era5_hourly_zarr",
+        temp_pet_fn: str = "era5_hourly",
         pet_method: str = "debruin",
     ) -> None:
         """Generate area-averaged, tabular reference evapotranspiration forcing for geom
@@ -191,7 +191,7 @@ class UWBM(VectorModel):
         temp_pet_fn : str, optional
             Name or path of data source with variables to calculate temperature
             and reference evapotranspiration, see data/forcing_sources.yml.
-            By default 'era5_hourly_zarr'.
+            By default 'era5_hourly'.
 
             * Required variable for temperature: ['temp']
 
@@ -278,7 +278,13 @@ class UWBM(VectorModel):
         pet_df.attrs.update(opt_attr)
         self.set_forcing(pet_df, name="pet")
 
-    def setup_landuse(self, source: str = "osm", landuse_mapping_fn: str | None = None):
+    def setup_landuse(
+        self,
+        soiltype: int,
+        croptype: int,
+        source: str = "osm",
+        landuse_mapping_fn: str | None = None,
+    ):
         """Generate landuse map for region based on provided base files.
 
         Adds model layer:
@@ -286,11 +292,19 @@ class UWBM(VectorModel):
         * **lu_table**: table containing urban land use surface areas [m2]
 
         Updates config:
+        * **soiltype**: soil type code according to UWB model documentation
+        * **croptype**: crop type code according to UWB model documentation
         * **landuse_area**: surface area of the land use clasess [m2]
         * **landuse_frac**: surface area fraction of the land use clasess [-]
+        * **tot_*_area**: total area of the UWB land use classes [m2]
+        * **tot_*_frac**: total area fraction of the UWB land use classes [-]
 
         Parameters
         ----------
+        soiltype: int
+            Soil type code according to UWB model documentation.
+        croptype: int
+            Crop type code according to UWB model documentation.
         source: str, optional
             Source of landuse base files. Current default is "osm".
         landuse_mapping_fn: str, optional
@@ -378,16 +392,29 @@ class UWBM(VectorModel):
             self.set_config(
                 "landuse_area",
                 f"{reclass}",
-                float(df_landuse.loc[df_landuse["reclass"] == reclass, "area"]),
+                float(df_landuse.loc[df_landuse["reclass"] == reclass, "area"].iloc[0]),
             )
             self.set_config(
                 "landuse_frac",
                 f"{reclass}",
-                float(df_landuse.loc[df_landuse["reclass"] == reclass, "frac"]),
+                float(df_landuse.loc[df_landuse["reclass"] == reclass, "frac"].iloc[0]),
             )
 
-    def setup_model_config(self, config_fn: str = None):
-        """Update TOML configuration file based on landuse calculations.
+        self.set_config("soiltype", soiltype)
+        self.set_config("croptype", croptype)
+
+        keys = ["op", "ow", "up", "pr", "cp"]
+        for key in keys:
+            self.set_config(f"tot_{key}_area", self.get_config("landuse_area", key))
+            self.set_config(f"{key}_frac", self.get_config("landuse_frac", key))
+
+        self.set_config("tot_area", self.get_config("landuse_area", "tot_area"))
+
+    def write_model_config(
+        self,
+        config_fn: str | None = None,
+    ):
+        """Write TOML configuration file based on landuse calculations.
 
         Parameters
         ----------
@@ -402,21 +429,8 @@ class UWBM(VectorModel):
                 )
             config_fn = f"ep_neighbourhood_{self.config['name']}.ini"
 
-        neighbourhood_params = self.config.copy()
-        keys = ["op", "ow", "up", "pr", "cp"]
-        for key in keys:
-            neighbourhood_params[f"tot_{key}_area"] = self.get_config(
-                "landuse_area", f"{key}"
-            )
-            neighbourhood_params[f"{key}_frac"] = self.get_config(
-                "landuse_frac", f"{key}"
-            )
-        neighbourhood_params["tot_area"] = self.get_config("landuse_area", "tot_area")
-
         path = Path(self.root, "input", "config", config_fn).as_posix()
-        writer = UWMBConfigWriter()
-        writer.from_dict(neighbourhood_params)
-        writer.write(path)
+        self._configwrite(path)
 
     # ==================================================================================
     # I/O METHODS
@@ -440,6 +454,7 @@ class UWBM(VectorModel):
             components = ["config", "forcing", "tables", "geoms"]
         if "config" in components:
             self.write_config()
+            self.write_model_config()
         if "forcing" in components:
             self.write_forcing()
         if "tables" in components:
@@ -547,6 +562,4 @@ class UWBM(VectorModel):
 
     def _configwrite(self, fn: str):
         """Write TOML configuration file."""
-        cfg = UWMBConfigWriter()
-        cfg.from_dict(self.config)
-        cfg.write(fn)
+        UWMBConfigWriter.from_dict(self.config).write(fn)
