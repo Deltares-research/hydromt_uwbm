@@ -9,19 +9,8 @@ __all__ = ["UWMBConfig", "UWMBConfigWriter", "read_inifile"]
 
 
 class UWMBConfig(BaseModel):
-    # Top-level
+    # run
     title: str = Field(..., description="Title of the configuration")
-
-    soiltype: int = Field(default=..., description="Soil type", ge=0)
-    croptype: int = Field(default=..., description="Crop type", ge=0)
-    tot_area: float = Field(
-        default=..., description="Total area of the study area in square meters", ge=0
-    )
-    area_type: Literal[0, 1] = Field(
-        default=..., description="Area input type [0: fraction(default), 1: area]"
-    )
-
-    # Added / set by hydromt_uwbm functions, so we allow None as default
     name: str | None = Field(default=None, description="Name of the simulation")
     starttime: datetime | None = Field(
         default=None, description="Simulation start time in format YYYY-MM-DD HH:MM:SS"
@@ -32,6 +21,16 @@ class UWMBConfig(BaseModel):
     timestepsecs: Literal[3600, 86400] | None = Field(
         default=None,
         description="Timestep length in seconds, must be 3600(hour) or 86400(day)",
+    )
+
+    # landuse
+    soiltype: int = Field(default=..., description="Soil type", ge=0)
+    croptype: int = Field(default=..., description="Crop type", ge=0)
+    tot_area: float = Field(
+        default=..., description="Total area of the study area in square meters", ge=0
+    )
+    area_type: Literal[0, 1] = Field(
+        default=..., description="Area input type [0: fraction(default), 1: area]"
     )
     landuse_area: dict[str, float] | None = Field(
         default=None, description="Land use area values"
