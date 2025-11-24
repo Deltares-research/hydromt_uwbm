@@ -31,16 +31,7 @@ class UWBM(VectorModel):
     }
     _FORCING_COLUMN_ORDER = ["P_atm", "Ref.grass", "E_pot_OW"]
     # Name of default folders to create in the model directory
-    _FOLDERS: list[str] = [
-        "input",
-        "input/project_area",
-        "input/landuse",
-        "input/config",
-        "output",
-        "output/forcing",
-        "output/landuse",
-        "output/config",
-    ]
+    _FOLDERS: list[str] = ["input", "results", "model_run"]
 
     _CATALOGS = [(_DATADIR / "parameters_data.yml").as_posix()]
     # Cli args forwards the region and res arguments to the correct functions
@@ -127,7 +118,7 @@ class UWBM(VectorModel):
 
         self.set_config("starttime", t_start)
         self.set_config("endtime", t_end)
-        self.set_config("timestepsecs", ts)
+        self.set_config("timestep", ts)
         self.set_config("name", name)
 
     def setup_precip_forcing(
@@ -152,7 +143,7 @@ class UWBM(VectorModel):
             return
         starttime = self.get_config("starttime")
         endtime = self.get_config("endtime")
-        freq = pd.to_timedelta(self.get_config("timestepsecs"), unit="s")
+        freq = pd.to_timedelta(self.get_config("timestep"), unit="s")
         geom = self.region
 
         precip = self.data_catalog.get_rasterdataset(
@@ -208,7 +199,7 @@ class UWBM(VectorModel):
             return
         starttime = self.get_config("starttime")
         endtime = self.get_config("endtime")
-        timestep = self.get_config("timestepsecs")
+        timestep = self.get_config("timestep")
         freq = pd.to_timedelta(timestep, unit="s")
         geom = self.region
 
@@ -410,28 +401,6 @@ class UWBM(VectorModel):
 
         self.set_config("tot_area", self.get_config("landuse_area", "tot_area"))
 
-    def write_model_config(
-        self,
-        config_fn: str | None = None,
-    ):
-        """Write TOML configuration file based on landuse calculations.
-
-        Parameters
-        ----------
-        config_fn: str, optional
-            Path to the config file. Default is self.config['name']
-        """
-        if config_fn is None:
-            if "name" not in self.config:
-                raise ValueError(
-                    "Set model name in config before setting up model "
-                    "config by calling `setup_project` first."
-                )
-            config_fn = f"ep_neighbourhood_{self.config['name']}.ini"
-
-        path = Path(self.root, "input", "config", config_fn).as_posix()
-        self._configwrite(path)
-
     # ==================================================================================
     # I/O METHODS
     def read(self, components: list[str] | None = None):
@@ -454,7 +423,6 @@ class UWBM(VectorModel):
             components = ["config", "forcing", "tables", "geoms"]
         if "config" in components:
             self.write_config()
-            self.write_model_config()
         if "forcing" in components:
             self.write_forcing()
         if "tables" in components:
@@ -462,7 +430,7 @@ class UWBM(VectorModel):
         if "geoms" in components:
             self.write_geoms()
 
-    def read_forcing(self, fn: str = "output/forcing/*.csv", **kwargs):
+    def read_forcing(self, fn: str = "input/*.csv", **kwargs):
         """Read forcing from model folder in model ready format (.csv)."""
         self._assert_read_mode()
         path = Path(self.root, fn)
@@ -491,7 +459,7 @@ class UWBM(VectorModel):
 
             start = self.get_config("starttime")
             end = self.get_config("endtime")
-            ts = datetime.timedelta(seconds=self.get_config("timestepsecs"))
+            ts = datetime.timedelta(seconds=self.get_config("timestep"))
             time_index = pd.date_range(start=start, end=end, freq=ts, name="date")
             df = pd.DataFrame(data=self.forcing, index=time_index)
             df.index.name = "date"
@@ -510,26 +478,27 @@ class UWBM(VectorModel):
             if fn is None:
                 years = int((end - start).days / 365.25)
                 h = int(ts.total_seconds() / 3600)
-                fn = f"output/forcing/Forcing_{self.config['name']}_{years}y_{h}h.csv"
+                fn = f"input/Forcing_{self.config['name']}_{years}y_{h}h.csv"
 
             path = Path(self.root, fn)
+            path.parent.mkdir(parents=True, exist_ok=True)
             df.to_csv(path, sep=",", date_format="%d-%m-%Y %H:%M", **kwargs)
 
-    def read_geoms(self, fn: str = "output/landuse/*.geojson", **kwargs):
+    def read_geoms(self, fn: str = "geoms/*.geojson", **kwargs):
         return super().read_geoms(fn, **kwargs)
 
     def write_geoms(
         self,
-        fn: str = "output/landuse/{name}.geojson",
+        fn: str = "geoms/{name}.geojson",
         to_wgs84: bool = False,
         **kwargs,
     ) -> None:
         super().write_geoms(fn=fn, to_wgs84=to_wgs84, **kwargs)
 
-    def read_tables(self, fn: str = "output/landuse/*.csv", **kwargs):
+    def read_tables(self, fn: str = "landuse/*.csv", **kwargs):
         return super().read_tables(fn, **kwargs)
 
-    def write_tables(self, fn: str = "output/landuse/{name}.csv", **kwargs):
+    def write_tables(self, fn: str = "landuse/{name}.csv", **kwargs):
         super().write_tables(fn=fn, **kwargs)
 
     def read_config(self, config_fn: str | None = None):
@@ -538,18 +507,13 @@ class UWBM(VectorModel):
         elif not self._read:  # write-only mode > read default config.
             path = Path(self._DATADIR, self._NAME, self._CONF)
         else:
-            path = Path(
-                self.root,
-                "output",
-                "config",
-                self._config_fn,
-            )
+            path = Path(self.root, "input", self._config_fn)
         return super().read_config(path.as_posix())
 
     def write_config(
         self, config_name: str | None = None, config_root: str | None = None
     ):
-        config_root = Path(self.root, "output", "config").as_posix()
+        config_root = Path(self.root, "input").as_posix()
         return super().write_config(config_name, config_root=config_root)
 
     def _configread(self, fn: str) -> dict:

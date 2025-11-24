@@ -4,187 +4,293 @@ from typing import Any, Literal
 
 import tomllib
 from pydantic import BaseModel, Field, ValidationError
+from pydantic_core import PydanticUndefined
 
 __all__ = ["UWMBConfig", "UWMBConfigWriter", "read_inifile"]
 
 
 class UWMBConfig(BaseModel):
     # run
-    title: str = Field(..., description="Title of the configuration")
-    name: str | None = Field(default=None, description="Name of the simulation")
-    starttime: datetime | None = Field(
-        default=None, description="Simulation start time in format YYYY-MM-DD HH:MM:SS"
+    title: str = Field(
+        default="neighbourhood config",
+        description="Title of the configuration",
     )
-    endtime: datetime | None = Field(
-        default=None, description="Simulation end time in format YYYY-MM-DD HH:MM:SS"
+    name: str = Field(
+        default=...,
+        description="Name of the simulation",
     )
-    timestepsecs: Literal[3600, 86400] | None = Field(
-        default=None,
-        description="Timestep length in seconds, must be 3600(hour) or 86400(day)",
+    starttime: datetime = Field(
+        default=...,
+        description="Simulation start time in format YYYY-MM-DD HH:MM:SS",
+    )
+    endtime: datetime = Field(
+        default=...,
+        description="Simulation end time in format YYYY-MM-DD HH:MM:SS",
+    )
+    timestep: Literal[3600, 86400] = Field(
+        default=...,
+        description="Timestep length in seconds [3600: hourly, 86400: daily]",
     )
 
     # landuse
-    soiltype: int = Field(default=..., description="Soil type", ge=0)
-    croptype: int = Field(default=..., description="Crop type", ge=0)
-    tot_area: float = Field(
-        default=..., description="Total area of the study area in square meters", ge=0
+    soiltype: int | None = Field(
+        default=None,
+        description="Soil type",
+        ge=0,
+    )
+    croptype: int | None = Field(
+        default=None,
+        description="Crop type",
+        ge=0,
+    )
+    tot_area: float | None = Field(
+        default=None,
+        description="Total area of the study area [m2]",
+        ge=0,
     )
     area_type: Literal[0, 1] = Field(
-        default=..., description="Area input type [0: fraction(default), 1: area]"
+        default=0,
+        description="Area input type [0: fraction(default), 1: area]",
     )
     landuse_area: dict[str, float] | None = Field(
-        default=None, description="Land use area values"
+        default=None,
+        description="Land use area values [m2]",
     )
     landuse_frac: dict[str, float] | None = Field(
-        default=None, description="Land use area fractions"
+        default=None,
+        description="Land use area fractions [-]",
     )
 
     # paved roof
-    tot_pr_area: int = Field(
-        default=..., description="Total area of paved roof in square meters", ge=0
+    tot_pr_area: int | None = Field(
+        default=None,
+        description="Total area of paved roof [m2]",
+        ge=0,
     )
-    pr_frac: float = Field(
-        default=..., description="Paved roof fraction of total area [-]", ge=0, le=1
+    pr_frac: float | None = Field(
+        default=None,
+        description="Paved roof fraction of total area [-]",
+        ge=0,
+        le=1,
     )
     frac_pr_aboveGW: float = Field(
-        ..., description="Part of buildings above Groundwater [-]", ge=0, le=1
+        default=1.0,
+        description="Part of buildings above Groundwater [-]",
+        ge=0,
+        le=1,
     )
     discfrac_pr: float = Field(
-        ...,
+        default=0.1,
         description="Part of paved roof disconnected from sewer system [-]",
         ge=0,
         le=1,
     )
     intstorcap_pr: float = Field(
-        ..., description="Internal storage capacity of paved roof", ge=0
+        default=3.0,
+        description="Interception storage capacity of paved roof [mm]",
+        ge=0,
     )
     intstor_pr_t0: float = Field(
-        ..., description="Initial interception storage of paved roof", ge=0
+        default=0.0,
+        description="Initial interception storage of paved roof (at t=0) [mm]",
+        ge=0,
     )
 
     # closed paved
-    tot_cp_area: int = Field(
-        default=..., description="Total area of closed paved in square meters", ge=0
+    tot_cp_area: int | None = Field(
+        default=None,
+        description="Total area of closed paved in square meters",
+        ge=0,
     )
-    cp_frac: float = Field(
-        default=..., description="Closed paved fraction of total area [-]", ge=0, le=1
+    cp_frac: float | None = Field(
+        default=None,
+        description="Closed paved fraction of total area [-]",
+        ge=0,
+        le=1,
     )
     discfrac_cp: float = Field(
-        ...,
+        default=0.05,
         description="Part of closed paved disconnected from sewer system [-]",
         ge=0,
         le=1,
     )
     intstorcap_cp: float = Field(
-        ..., description="Internal storage capacity of closed paved", ge=0
+        default=2.0,
+        description="Interception storage capacity of closed paved",
+        ge=0,
     )
     intstor_cp_t0: float = Field(
-        ..., description="Initial interception storage of closed paved", ge=0
+        default=0.0,
+        description="Initial interception storage of closed paved (at t=0) [mm]",
+        ge=0,
     )
 
     # open paved
-    tot_op_area: int = Field(
-        default=..., description="Total area of open paved in square meters", ge=0
+    tot_op_area: int | None = Field(
+        default=None,
+        description="Total area of open paved [m2]",
+        ge=0,
     )
-    op_frac: float = Field(
-        default=..., description="Open paved fraction of total area [-]", ge=0, le=1
+    op_frac: float | None = Field(
+        default=None,
+        description="Open paved fraction of total area [-]",
+        ge=0,
+        le=1,
     )
     discfrac_op: float = Field(
-        ...,
+        default=0.5,
         description="Part of open paved disconnected from sewer system [-]",
         ge=0,
         le=1,
     )
     intstorcap_op: float = Field(
-        ..., description="Internal storage capacity of open paved", ge=0
+        default=4.0,
+        description="Interception storage capacity of open paved [mm]",
+        ge=0,
     )
     infilcap_op: float = Field(
-        ..., description="Infiltration capacity of open paved", ge=0
+        default=24.0,
+        description="Infiltration capacity of open paved [mm/d]",
+        ge=0,
     )
     intstor_op_t0: float = Field(
-        ..., description="Initial interception storage of open paved", ge=0
+        default=0.0,
+        description="Initial interception storage of open paved (at t=0) [mm]",
+        ge=0,
     )
 
     # unpaved
-    tot_up_area: int = Field(
-        default=..., description="Total area of unpaved in square meters", ge=0
+    tot_up_area: int | None = Field(
+        default=None,
+        description="Total area of unpaved [m2]",
+        ge=0,
     )
-    up_frac: float = Field(
-        default=..., description="Unpaved fraction of total area [-]", ge=0, le=1
+    up_frac: float | None = Field(
+        default=None,
+        description="Unpaved fraction of total area [-]",
+        ge=0,
+        le=1,
     )
     intstorcap_up: float = Field(
-        ..., description="Internal storage capacity of unpaved", ge=0
+        default=5.0,
+        description="Interception storage capacity of unpaved [mm]",
+        ge=0,
     )
     infilcap_up: float = Field(
-        ..., description="Infiltration capacity of unpaved", ge=0
+        default=48.0,
+        description="Infiltration capacity of unpaved [mm/d]",
+        ge=0,
     )
     fin_intstor_up_t0: float = Field(
-        ..., description="Initial interception storage of unpaved", ge=0
+        default=0.0,
+        description="Initial interception storage of unpaved (at t=0) [mm]",
+        ge=0,
     )
 
     # groundwater
     w: float = Field(
-        ...,
+        default=1000.0,
         description="Drainage resistance from groundwater to open water (w) [d]",
         ge=0,
     )
     seepage_define: int = Field(
-        ...,
+        default=0,
         description="Seepage to deep groundwater defined as either constant downward flux or dynamic computed flux determined by head difference and resistance [0=flux; 1=level]",
         ge=0,
         le=1,
     )
     down_seepage_flux: float = Field(
-        ...,
+        default=0.0,
         description="Constant downward flux from shallow groundwater to deep groundwater [mm/d]",
         ge=0,
     )
     head_deep_gw: float = Field(
-        ..., description="Hydraulic head of deep groundwater [m below ground level]"
+        default=20.0,
+        description="Hydraulic head of deep groundwater [m below ground level]",
     )
     vc: float = Field(
-        ...,
+        default=100000.0,
         description="Vertical flow resistance from shallow groundwater to deep groundwater (vc) [d]",
         ge=0,
     )
     gwl_t0: float = Field(
-        ...,
-        description='Initial groundwater level (at t=0) relating to "storcap_ow" [m-SL]',
+        default=4.0,
+        description='Initial groudwater level (at t=0), usually taken as target water level, relating to "storcap_ow" [m-SL]',
     )
 
     # open water
-    tot_ow_area: int = Field(
-        default=..., description="Total area of open water in square meters", ge=0
+    tot_ow_area: int | None = Field(
+        default=None, description="Total area of open water [m2]", ge=0
     )
-    ow_frac: float = Field(
-        default=..., description="Open water fraction of total area [-]", ge=0, le=1
+    ow_frac: float | None = Field(
+        default=None, description="Open water fraction of total area [-]", ge=0, le=1
     )
     frac_ow_aboveGW: float = Field(
-        ..., description="Part of open water above Groundwater [-]", ge=0, le=1
+        default=0.0, description="Part of open water above Groundwater [-]", ge=0, le=1
     )
-    storcap_ow: float = Field(..., description="Storage capacity of open water", ge=0)
-    q_ow_out_cap: float = Field(..., description="Outflow capacity of open water", ge=0)
+    storcap_ow: float = Field(
+        default=4000.0,
+        description="Storage capacity of open water (divided by 1000 is target open water level) [mm]",
+        ge=0,
+    )
+    q_ow_out_cap: float = Field(
+        default=3.0,
+        description="predefined discharge capacity from open water (internal) to outside water (external) [mm/d over total area]",
+        ge=0,
+    )
 
     # sewer system
     swds_frac: float = Field(
-        ..., description="Part of urban paved area with SWDS [-]", ge=0, le=1
+        default=0.25,
+        description="Part of urban paved area with storm water drainage system (SWDS) [-]",
+        ge=0,
+        le=1,
     )
-    storcap_swds: float = Field(..., description="Storage capacity of SWDS", ge=0)
-    storcap_mss: float = Field(..., description="Storage capacity of MSS", ge=0)
+    storcap_swds: float = Field(
+        default=2.0,
+        description="Storage capacity of storm water drainage system (SWDS) [mm]",
+        ge=0,
+    )
+    storcap_mss: float = Field(
+        default=9.0,
+        description="Storage capacity of mixed sewer system (MSS) [mm]",
+        ge=0,
+    )
     rainfall_swds_so: float = Field(
-        ..., description="Rainfall intensity for SWDS overflow [mm/timestep]", ge=0
+        default=8.0,
+        description="Rainfall intensity when SWDS overflow occurs on street [mm/timestep]",
+        ge=0,
     )
     rainfall_mss_ow: float = Field(
-        ..., description="Rainfall intensity for MSS overflow [mm/timestep]", ge=0
+        default=8.0,
+        description="Rainfall intensity when combined overflow to open water occurs [mm/timestep]",
+        ge=0,
     )
-    stor_swds_t0: float = Field(..., description="Initial storage of SWDS at t=0", ge=0)
-    so_swds_t0: float = Field(..., description="Initial outflow from SWDS at t=0", ge=0)
-    stor_mss_t0: float = Field(..., description="Initial storage of MSS at t=0", ge=0)
-    so_mss_t0: float = Field(..., description="Initial outflow from MSS at t=0", ge=0)
+
+    stor_swds_t0: float = Field(
+        default=0.0,
+        description="Initial storage in storm water drainage system (SWDS) [mm]",
+        ge=0,
+    )
+    so_swds_t0: float = Field(
+        default=0.0,
+        description="Initial sewer overflow from storm water drainage system (SWDS) [mm]",
+        ge=0,
+    )
+    stor_mss_t0: float = Field(
+        default=0.0,
+        description="Initial storage in mixed sewer system (MSS) [mm]",
+        ge=0,
+    )
+    so_mss_t0: float = Field(
+        default=0.0,
+        description="Initial sewer overflow from mixed sewer system (MSS) [mm]",
+        ge=0,
+    )
 
     # Define sections for serialization
     _SECTIONS = [
-        ("run", ["title", "name", "starttime", "endtime", "timestepsecs"]),
+        ("run", ["title", "name", "starttime", "endtime", "timestep"]),
         (
             "landuse",
             [
@@ -281,7 +387,7 @@ class UWMBConfig(BaseModel):
             return str(v)
 
         lines: list[str] = []
-        all_entries = set()
+        serialized_fields = set()
 
         # Header
         lines.append("# This is a TOML-format neighbourhood (base) configuration file.")
@@ -298,10 +404,10 @@ class UWMBConfig(BaseModel):
             simple_entries = []
             other_entries = []
             for name in fields:
-                all_entries.add(name)
                 value = getattr(self, name)
                 if value is None:
                     continue
+                serialized_fields.add(name)
                 desc = UWMBConfig.model_fields[name].description
                 assignment = f"{name} = {fmt(value)}"
                 if isinstance(value, (int, float, str, bool, datetime)):
@@ -328,10 +434,22 @@ class UWMBConfig(BaseModel):
                 lines.append("")
             lines.append("")
 
-        if not set(UWMBConfig.model_fields.keys()).issubset(all_entries):
-            missing = set(UWMBConfig.model_fields.keys()) - all_entries
+        fields_with_defaults = {
+            name
+            for name, field in UWMBConfig.model_fields.items()
+            if field.default is not PydanticUndefined and field.default is not None
+        }
+        required_fields = {
+            name
+            for name, field in UWMBConfig.model_fields.items()
+            if field.default is PydanticUndefined
+        }
+        expected_fields = fields_with_defaults | required_fields
+        missing = expected_fields - serialized_fields
+        if missing:
+            # If you want to add an optional / required var to the config, please add them to the correct section in ``UWMBConfig._SECTIONS``.
             raise ValueError(
-                f"Some fields were not serialized: {missing}. Please add them to the correct section in ``UWMBConfig._SECTIONS``."
+                f"Some required fields were not serialized: {missing}.\nPlease set these using functions ``UWMB.setup_x`` and/or ``UWMB.set_config()``."
             )
 
         return "\n".join(lines)
@@ -353,8 +471,8 @@ class UWMBConfig(BaseModel):
         try:
             return UWMBConfig(**data)
         except ValidationError as e:
-            known_keys = set(UWMBConfig.model_fields.keys())
-            unknown_keys = [k for k in data.keys() if k not in known_keys]
+            all_keys = set(UWMBConfig.model_fields.keys())
+            unknown_keys = [k for k in data.keys() if k not in all_keys]
             invalid_params: list[str] = []
 
             for err in e.errors():
