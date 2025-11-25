@@ -5,10 +5,14 @@ build-backend = "flit_core.buildapi"
 [project]
 name = "hydromt_uwbm"
 dependencies = [
-    "hydromt",
-    "tomli",        # parsing toml files
+    "hydromt>=0.10,<1.0",   # HydroMT core
+    "numpy",                # numerical computing
+    "pandas",               # data handling
+    "geopandas",            # spatial data handling
+    "tomli_w",              # writing toml files
 ]
-
+license = "MIT" # https://peps.python.org/pep-0639/
+license-files = ["LICENSE"]
 version = "0.1.0"
 description = "A HydroMT plugin for the Urban Water Balance Model"
 
@@ -23,16 +27,17 @@ classifiers = [
 ]
 
 [project.optional-dependencies]
-# here you can add dependency groups like this: 
+# here you can add dependency groups like this:
 # group = [dep1, dep2,...]
-doc = []
+doc = [
+    "quartodoc",        # documentation generation
+]
 dev = [
-    "black",            # code formatting
     "ruff",             # code linting
     "pre-commit",       # pre-commit hooks
 ]
 test = [
-    "pytest>=2.7.3",    # testing framework
+    "pytest",           # testing framework
     "pytest-cov",       # pytest plugin for coverage reports
 ]
 
@@ -42,32 +47,28 @@ full = ["hydromt_uwbm[doc,dev,test]"]
 Documentation = "https://daanrooze.github.io/hydromt_uwbm"
 Source = "https://github.com/daanrooze/hydromt_uwbm"
 
-[project.entry-points."hydromt.models"] 
+[project.entry-points."hydromt.models"]
 uwbm = "hydromt_uwbm.uwbm:UWBM"
-
-[tool.black]
-line-length = 88
-target-version = ['py39']
 
 [tool.ruff]
 line-length = 88
-# enable pydocstyle (E), pyflake (F) and isort (I), pytest-style (PT)
-select = ["E", "F", "I", "PT", "D"]
-ignore-init-module-imports = true
-ignore = ["D211", "D213", "E741", "D105", "E712"]
-exclude = ["docs"]
+fix = true
 
-[tool.ruff.pydocstyle]
-convention = "numpy"
+[tool.ruff.lint]
+# enable pydocstyle (E), pyflake (F) and isort (I), pytest-style (PT), and docstring (D) checks
+select = ["E", "F", "I", "PT"] #, "D"]
+ignore = ["D211", "D213", "E741", "D105", "E712", "E501"]
+fixable = ["E", "F", "I", "PT"]
+exclude = ["docs"]
+pydocstyle = { convention = "numpy" }
 
 [tool.flit.sdist]
 include = ["hydromt_uwbm"]
 exclude = ["docs", "examples", "tests", ".github"]
 
-
 [tool.mypy]
 packages = [
-"hydromt_uwbm"    
+"hydromt_uwbm"
 ]
 exclude = [
     "docs",

@@ -9,7 +9,7 @@ body:
       label:  HydroMT plugin UWBM version checks
       options:
         - label: >
-            I have checked that the issue still exists on the latest versions of the docs on `main` [here](https://github.com/Deltares/)hydromt_plugin_uwbm
+            I have checked that the issue still exists on the latest versions of the docs on `main` [here](https://github.com/Deltares/)hydromt_uwbm
           required: true
   - type: dropdown
     id: kind

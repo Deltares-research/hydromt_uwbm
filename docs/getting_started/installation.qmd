@@ -3,8 +3,8 @@ Title: 'Installation guide'
 ---
 
 # Prerequisites
-For more information about the prerequisites for an installation of the HydroMT package 
-and related dependencies, please visit the documentation of 
+For more information about the prerequisites for an installation of the HydroMT package
+and related dependencies, please visit the documentation of
 [HydroMT core](https://deltares.github.io/hydromt/latest/getting_started/installation.html#installation-guide)
 
 Compared to HydroMT, HydroMT plugin UWBM has additional dependencies, namely:
@@ -12,7 +12,7 @@ Compared to HydroMT, HydroMT plugin UWBM has additional dependencies, namely:
 - [tomli](https://github.com/hukkin/tomli)
 - list here other dependencies if any
 
-If you already have a python & conda installation but do not yet have mamba installed, 
+If you already have a python & conda installation but do not yet have mamba installed,
 we recommend installing it into your *base* environment using:
 
 ```
@@ -32,7 +32,7 @@ To generate a usable mamba/conda environment you’ll need to have tomli install
 The first step is to create the environment.yml:
 
 ```
-  $ python make_env.py full -n hydromt_plugin_uwbm
+  $ python make_env.py full -n hydromt_uwbm
 ```
 
 When the script is finished, a file called environment.yml will be created which you can pass to mamba as demonstrated in the sections below. This will include all mandatory and optional dependencies of HydroMT plugin UWBM.
@@ -41,7 +41,7 @@ After the environment file has been created you can create an environment out of
 
 ```
 mamba env create -f environment.yml
-mamba activate hydromt_plugin_uwbm
+mamba activate hydromt_uwbm
 ```
 
 Finally, create a developer installation of HydroMT:

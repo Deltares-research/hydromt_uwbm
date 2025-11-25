@@ -1,9 +1,10 @@
-"""HydroMT plugin UWBM: A HydroMT plugin for the Urban Water Balance Model"""
+"""HydroMT plugin UWBM: A HydroMT plugin for the Urban Water Balance Model."""
 
-from os.path import dirname, join, abspath
+from pathlib import Path
 
-DATADIR = abspath(join(dirname(__file__), "data"))
+from hydromt_uwbm.uwbm import UWBM
 
-__version__ = "0.1.0"
+DATA_DIR = Path(__file__).parent / "data"
 
-from .uwbm import *
+__all__ = ["UWBM"]
+__version__ = "0.2.0"
