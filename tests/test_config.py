@@ -1,9 +1,10 @@
+import tomllib
 from datetime import datetime
 from pathlib import Path
 
 import pytest
 
-from hydromt_uwbm.config import UWMBConfig, UWMBConfigWriter
+from hydromt_uwbm.components.config import UWBMConfig
 
 
 @pytest.fixture
@@ -17,8 +18,8 @@ def endtime() -> datetime:
 
 
 @pytest.fixture
-def minimal_config(starttime: datetime, endtime: datetime) -> UWMBConfig:
-    return UWMBConfig(
+def minimal_config(starttime: datetime, endtime: datetime) -> UWBMConfig:
+    return UWBMConfig(
         name="Minimal config",
         starttime=starttime,
         endtime=endtime,
@@ -26,26 +27,26 @@ def minimal_config(starttime: datetime, endtime: datetime) -> UWMBConfig:
     )
 
 
-def test_write_read_cycle(tmp_path: Path, minimal_config: UWMBConfig):
+def test_write_read_cycle(tmp_path: Path, minimal_config: UWBMConfig):
     path = tmp_path / "config.ini"
-    writer = UWMBConfigWriter(minimal_config)
-    writer.write(path)
-    cfg_read = UWMBConfigWriter.from_file(path).config
-
-    assert cfg_read == minimal_config
-
-
-def test_missing_field_serialization_error(tmp_path: Path, minimal_config: UWMBConfig):
-    minimal_config._SECTIONS.pop(0)  # remove a section to cause serialization error
-    writer = UWMBConfigWriter(minimal_config)
-    with pytest.raises(ValueError, match="Some required fields were not serialized:"):
-        writer.write(tmp_path / "dummy_path.ini")
+    with open(path, "w") as f:
+        f.write(minimal_config.to_ini())
+    with open(path, "rb") as f:
+        read_data = tomllib.load(f)
+    read_cfg = UWBMConfig.create(read_data)
+    assert read_cfg == minimal_config
 
 
 # --------------------------------------------------------------------------
 # Test validation errors
 # --------------------------------------------------------------------------
-def test_missing_required_fields(minimal_config: UWMBConfig):
+def test_missing_field_serialization_error(tmp_path: Path, minimal_config: UWBMConfig):
+    minimal_config._SECTIONS.pop(0)  # remove a section to cause serialization error
+    with pytest.raises(ValueError, match="Some required fields were not serialized:"):
+        minimal_config.to_ini()
+
+
+def test_missing_required_fields(minimal_config: UWBMConfig):
     minimal_config.name = None  # required field
 
     with pytest.raises(ValueError, match="Some required fields were not serialized:"):
@@ -54,7 +55,7 @@ def test_missing_required_fields(minimal_config: UWMBConfig):
 
 def test_invalid_fraction(starttime, endtime):
     with pytest.raises(ValueError, match="Input should be less than or equal to 1"):
-        UWMBConfig(
+        UWBMConfig(
             name="Bad fraction",
             starttime=starttime,
             endtime=endtime,
@@ -80,7 +81,7 @@ def test_create_validation_messages():
     }
 
     with pytest.raises(ValueError) as excinfo:  # noqa: PT011
-        UWMBConfig.create(test_data)
+        UWBMConfig.create(test_data)
 
     msg = str(excinfo.value)
     print(msg)  # for debugging
