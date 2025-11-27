@@ -3,10 +3,8 @@ import logging
 from pathlib import Path
 
 import geopandas as gpd
-import hydromt
-import hydromt.model.processes
-import hydromt.model.processes.meteo
-import hydromt.model.processes.region
+import hydromt.model.processes.meteo as hmt_meteo
+import hydromt.model.processes.region as hmt_region
 import pandas as pd
 from hydromt import Model
 from hydromt.model.components import GeomsComponent, TablesComponent
@@ -149,9 +147,7 @@ class UWBM(Model):
             time_range=(starttime, endtime),
             variables=["precip"],
         )
-        precip = hydromt.model.processes.meteo.resample_time(
-            precip, freq=freq, downsampling="sum"
-        )
+        precip = hmt_meteo.resample_time(precip, freq=freq, downsampling="sum")
         precip_out = precip.raster.zonal_stats(
             geom,
             stats=["mean"],
@@ -229,7 +225,7 @@ class UWBM(Model):
         ds_out = ds_out.rename_vars({f"{var}_mean": var for var in variables})
 
         if pet_method == "debruin":
-            pet_out = hydromt.model.processes.meteo.pet_debruin(
+            pet_out = hmt_meteo.pet_debruin(
                 ds_out["temp"],
                 ds_out["press_msl"],
                 ds_out["kin"],
@@ -241,7 +237,7 @@ class UWBM(Model):
             )
 
         elif pet_method == "makkink":
-            pet_out = hydromt.model.processes.meteo.pet_makkink(
+            pet_out = hmt_meteo.pet_makkink(
                 ds_out["temp"],
                 ds_out["press_msl"],
                 ds_out["kin"],
@@ -249,9 +245,7 @@ class UWBM(Model):
                 cp=1005.0,
             )
 
-        pet_out = hydromt.model.processes.meteo.resample_time(
-            pet_out, freq=freq, downsampling="mean"
-        )
+        pet_out = hmt_meteo.resample_time(pet_out, freq=freq, downsampling="mean")
 
         pet_df = pet_out.to_dataframe(name="E_pot_OW")
         pet_df = pet_df.reset_index().set_index("time")
@@ -409,9 +403,9 @@ class UWBM(Model):
     def _parse_region(self, region: dict, crs: int) -> gpd.GeoDataFrame:
         crs = region.get("crs") or crs
         if region.get("bbox") is not None:
-            gdf = hydromt.model.processes.region.parse_region_bbox(region, crs=crs)
+            gdf = hmt_region.parse_region_bbox(region, crs=crs)
         elif region.get("geom") is not None:
-            gdf = hydromt.model.processes.region.parse_region_geom(region, crs=crs)
+            gdf = hmt_region.parse_region_geom(region, crs=crs)
         else:
             raise IOError(
                 "Provide region as either 'geom' with a gpd.GeoDataFrame or "
