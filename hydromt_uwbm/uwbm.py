@@ -161,7 +161,7 @@ class UWBM(Model):
         precip_out = precip_out.reset_index().set_index("time")
         precip_out = precip_out[["P_atm"]]
         precip_out.attrs.update({"precip_fn": precip_fn})
-
+        precip_out = precip_out.round(3)
         self.forcing.set(precip_out, name="precip")
 
     def setup_pet_forcing(
@@ -216,7 +216,7 @@ class UWBM(Model):
         ds = self.data_catalog.get_rasterdataset(
             temp_pet_fn,
             geom=geom,
-            buffer=1,
+            buffer=2,
             time_range=(starttime, endtime),
             variables=variables,
             single_var_as_array=False,
@@ -265,6 +265,7 @@ class UWBM(Model):
             "pet_method": pet_method,
         }
         pet_df.attrs.update(opt_attr)
+        pet_df = pet_df.round(3)
         self.forcing.set(pet_df, name="pet")
 
     def setup_landuse(
@@ -347,10 +348,13 @@ class UWBM(Model):
             ]
 
             for layer in layers:
-                # TODO dynamic buffer based on region or grid size?
                 osm_layer = self.data_catalog.get_geodataframe(
-                    layer, geom=self.region, buffer=20_000
-                )  # ! buffer in meters
+                    layer, geom=self.region, handle_nodata="warn"
+                )
+                if osm_layer is None or osm_layer.empty:
+                    osm_layer = gpd.GeoDataFrame(
+                        columns=["geometry"], geometry="geometry", crs=self.region.crs
+                    )
                 self.geoms.set(osm_layer, name=layer)
 
             lu_map = landuse.landuse_from_osm(
