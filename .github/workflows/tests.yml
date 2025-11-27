@@ -3,13 +3,13 @@ name: Tests
 
 on:
   push:
-    branches: [main]
+    branches: [master]
     paths:
       - 'hydromt_uwbm/*'
       - '.github/workflows/tests.yml'
       - 'tests/*'
   pull_request:
-    branches: [main]
+    branches: [master]
     paths:
       - 'hydromt_uwbm/*'
       - '.github/workflows/tests.yml'
