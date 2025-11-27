@@ -53,7 +53,7 @@ class UWBMConfigComponent(ConfigComponent):
 class UWBMConfig(BaseModel):
     # run
     title: str = Field(
-        default="neighbourhood config",
+        default="Neighbourhood config",
         description="Title of the configuration",
     )
     name: str = Field(
@@ -234,11 +234,9 @@ class UWBMConfig(BaseModel):
         description="Drainage resistance from groundwater to open water (w) [d]",
         ge=0,
     )
-    seepage_define: float = Field(
-        default=0.0,
+    seepage_define: Literal[0, 1] = Field(
+        default=0,
         description="Seepage to deep groundwater defined as either constant downward flux or dynamic computed flux determined by head difference and resistance [0=flux; 1=level]",
-        ge=0,
-        le=1,
     )
     down_seepage_flux: float = Field(
         default=0.0,
@@ -255,7 +253,7 @@ class UWBMConfig(BaseModel):
         ge=0,
     )
     gwl_t0: float = Field(
-        default=4.0,
+        default=1.5,
         description='Initial groudwater level (at t=0), usually taken as target water level, relating to "storcap_ow" [m-SL]',
     )
 
@@ -270,7 +268,7 @@ class UWBMConfig(BaseModel):
         default=0.0, description="Part of open water above Groundwater [-]", ge=0, le=1
     )
     storcap_ow: float = Field(
-        default=4000.0,
+        default=1500.0,
         description="Storage capacity of open water (divided by 1000 is target open water level) [mm]",
         ge=0,
     )
@@ -293,7 +291,7 @@ class UWBMConfig(BaseModel):
         ge=0,
     )
     storcap_mss: float = Field(
-        default=9.0,
+        default=2.0,
         description="Storage capacity of mixed sewer system (MSS) [mm]",
         ge=0,
     )
