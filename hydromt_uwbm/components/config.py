@@ -4,6 +4,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal
 
+from hydromt import hydromt_step
 from hydromt._utils.path import _make_config_paths_relative
 from hydromt.model.components.config import ConfigComponent
 from pydantic import BaseModel, Field, ValidationError
@@ -20,10 +21,7 @@ logger = logging.getLogger(__name__)
 class UWBMConfigComponent(ConfigComponent):
     model: "UWBM"
 
-    def read(self, path: str | None = None) -> None:
-        """Read configuration data from files."""
-        super().read(path)
-
+    @hydromt_step
     def write(self, file_path: str | None = None) -> None:
         """Write configuration data to files."""
         self.root._assert_write_mode()
@@ -47,7 +45,7 @@ class UWBMConfigComponent(ConfigComponent):
         path = Path(path)
         path.parent.mkdir(parents=True, exist_ok=True)
         with open(path, "w") as f:
-            f.write(config.to_ini())
+            f.write(config.to_toml())
 
 
 class UWBMConfig(BaseModel):
@@ -411,7 +409,7 @@ class UWBMConfig(BaseModel):
     class Config:
         keep_untouched = ()  # keep order stable
 
-    def to_ini(self) -> str:
+    def to_toml(self) -> str:
         def fmt(v: Any) -> str:
             if isinstance(v, str):
                 return f'"{v}"'

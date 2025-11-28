@@ -28,9 +28,9 @@ def minimal_config(starttime: datetime, endtime: datetime) -> UWBMConfig:
 
 
 def test_write_read_cycle(tmp_path: Path, minimal_config: UWBMConfig):
-    path = tmp_path / "config.ini"
+    path = tmp_path / "config.toml"
     with open(path, "w") as f:
-        f.write(minimal_config.to_ini())
+        f.write(minimal_config.to_toml())
     with open(path, "rb") as f:
         read_data = tomllib.load(f)
     read_cfg = UWBMConfig.create(read_data)
@@ -43,14 +43,14 @@ def test_write_read_cycle(tmp_path: Path, minimal_config: UWBMConfig):
 def test_missing_field_serialization_error(tmp_path: Path, minimal_config: UWBMConfig):
     minimal_config._SECTIONS.pop(0)  # remove a section to cause serialization error
     with pytest.raises(ValueError, match="Some required fields were not serialized:"):
-        minimal_config.to_ini()
+        minimal_config.to_toml()
 
 
 def test_missing_required_fields(minimal_config: UWBMConfig):
     minimal_config.name = None  # required field
 
     with pytest.raises(ValueError, match="Some required fields were not serialized:"):
-        minimal_config.to_ini()
+        minimal_config.to_toml()
 
 
 def test_invalid_fraction(starttime, endtime):

@@ -59,7 +59,7 @@ This plugin allows to build from scratch a complete model from available data.
 4. **Build** your model using the CLI or Python interface.
 
 ```
-    hydromt build uwbm path/to/built_model -r "{'bbox': [xmin, ymin, xmax, ymax]}" -i uwbm_build.ini -d data_sources.yml -vvv
+    hydromt build uwbm path/to/built_model -r "{'bbox': [xmin, ymin, xmax, ymax]}" -i uwbm_build.yml -d data_sources.yml -vvv
 ```
 
 The recommended [region options](https://deltares.github.io/hydromt/latest/user_guide/model_region.html)
@@ -82,7 +82,7 @@ To add or change one or more components of an existing uwbm model the `update` m
 4. **Update** your model using the CLI or Python interface.
 
 ```
-    hydromt update uwbm path/to/model_to_update -o path/to/updated_model -i uwbm_update.ini -d data_sources.yml -vvv
+    hydromt update uwbm path/to/model_to_update -o path/to/updated_model -i uwbm_update.yml -d data_sources.yml -vvv
 ```
 
 :::{.callout-note}

@@ -52,9 +52,9 @@ class UWBM(Model):
         """
         self.config = UWBMConfigComponent(
             self,
-            filename="input/neighbourhood_params.ini",
+            filename="input/neighbourhood_params.toml",
             default_template_filename=(
-                DATADIR / "UWBM/neighbourhood_params.ini"
+                DATADIR / "UWBM/neighbourhood_params.toml"
             ).as_posix(),
         )
         self.forcing = UWBMForcingComponent(self, filename="input/{name}.csv")

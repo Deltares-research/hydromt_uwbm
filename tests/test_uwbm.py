@@ -8,6 +8,7 @@ import pytest
 from hydromt_uwbm import UWBM
 
 DATA_DIR = Path(__file__).parent / "data"
+P_DRIVE = Path("P:/")
 
 
 @pytest.fixture
@@ -15,6 +16,9 @@ def athens_votris_model() -> Path:
     return DATA_DIR / "Athens_Votris_model"
 
 
+@pytest.mark.skipif(
+    not P_DRIVE.exists(), reason="Requires access to the P drive via the Deltares vpn."
+)
 def test_model(tmp_path: Path, athens_votris_model: Path):
     model = UWBM(
         root=tmp_path,
