@@ -1,8 +1,13 @@
+import sys
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Literal
 
-import tomllib
+if sys.version_info < (3, 11):
+    from tomli import load as read_toml
+else:
+    from tomllib import load as read_toml
+
 from pydantic import BaseModel, Field, ValidationError
 from pydantic_core import PydanticUndefined
 
@@ -457,7 +462,7 @@ class UWMBConfig(BaseModel):
     @staticmethod
     def from_file(path: Path) -> "UWMBConfig":
         with open(path, "rb") as f:
-            cfg = tomllib.load(f)
+            cfg = read_toml(f)
         return UWMBConfig.create(cfg)
 
     @staticmethod
@@ -536,5 +541,5 @@ class UWMBConfigWriter:
 
 def read_inifile(path: Path) -> dict[str, Any]:
     with open(path, "rb") as f:
-        cfg = tomllib.load(f)
+        cfg = read_toml(f)
     return cfg

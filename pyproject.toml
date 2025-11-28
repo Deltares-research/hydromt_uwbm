@@ -16,7 +16,7 @@ license-files = ["LICENSE"]
 version = "0.1.0"
 description = "A HydroMT plugin for the Urban Water Balance Model"
 
-requires-python = ">=3.9,<3.14"
+requires-python = ">=3.10,<3.14"
 classifiers = [
     # https://pypi.python.org/pypi?%3Aaction=list_classifiers
     "Development Status :: 2 - Pre-Alpha",
