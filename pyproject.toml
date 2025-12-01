@@ -15,7 +15,7 @@ license = "MIT" # https://peps.python.org/pep-0639/
 license-files = ["LICENSE"]
 dynamic = ["version"]
 description = "A HydroMT plugin for the Urban Water Balance Model"
-requires-python = ">=3.11,<3.14"
+requires-python = ">=3.11"
 classifiers = [
     # https://pypi.python.org/pypi?%3Aaction=list_classifiers
     "Development Status :: 2 - Pre-Alpha",
@@ -72,7 +72,7 @@ packages = [
 exclude = [
     "docs",
 ]
-python_version = "3.11"
+python_version = "3.12"
 warn_unused_configs = true
 warn_redundant_casts = true
 warn_unused_ignores = true
