@@ -1016,8 +1016,8 @@ wheels = [
 
 [[package]]
 name = "hydromt"
-version = "1.3.0rc5"
-source = { registry = "https://pypi.org/simple" }
+version = "1.2.0.dev0"
+source = { git = "https://github.com/Deltares/hydromt#dc273771345920172faea22594c08e6b9dc52ea6" }
 dependencies = [
     { name = "affine" },
     { name = "bottleneck" },
@@ -1055,10 +1055,6 @@ dependencies = [
     { name = "xugrid" },
     { name = "zarr" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/cf/2f/35ea32acfd16b03bddc8a36c16bd172c9dd285b4bbd3db08fabef66a3be0/hydromt-1.3.0rc5.tar.gz", hash = "sha256:4fde67a4f9f99176e1ffe7512dfc9bb8a16c9e42a98ba73281e6a086e976837e", size = 617233, upload-time = "2025-11-11T09:46:27.696Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/9c/c7/127c7751366a9042aeb0cea8c2131e399cde19f4d9b10d46d81d5b2c6a07/hydromt-1.3.0rc5-py3-none-any.whl", hash = "sha256:925dbe4b926b3b36cef1be91f554a1a0d40d56779146f656943d35421d212118", size = 278990, upload-time = "2025-11-11T09:46:26.354Z" },
-]
 
 [[package]]
 name = "hydromt-uwbm"
@@ -1094,7 +1090,7 @@ test = [
 [package.metadata]
 requires-dist = [
     { name = "geopandas" },
-    { name = "hydromt", specifier = ">=1.3.0rc5,<2.0" },
+    { name = "hydromt", git = "https://github.com/Deltares/hydromt" },
     { name = "hydromt-uwbm", extras = ["doc", "dev", "test"], marker = "extra == 'full'" },
     { name = "numpy" },
     { name = "pandas" },
