@@ -36,17 +36,28 @@ class UWBMForcingComponent(TablesComponent):
 
     @hydromt_step
     def write(self, filename: str | None = None, **kwargs) -> None:
+        """Write forcing data to model folder.
+
+        Parameters
+        ----------
+        filename: str | None
+            Filename to write to. If None, a default filename will be generated.
+        **kwargs:
+            Additional keyword arguments passed to pandas.DataFrame.to_csv().
+        """
         self._write(
             start=self.model.config.get_value("starttime"),
             end=self.model.config.get_value("endtime"),
             timestep=self.model.config.get_value("timestep"),
             name=self.model.config.get_value("name"),
             filename=filename,
+            decimals=self.model.config.get_value("output.decimals", fallback=3),
             **kwargs,
         )
 
     def _write(
         self,
+        *,
         start: datetime,
         end: datetime,
         timestep: int,

@@ -39,9 +39,7 @@ def test_model(tmp_path: Path, athens_votris_model: Path):
 
     model.setup_precip_forcing(precip_fn="era5_hourly")
     model.setup_pet_forcing(temp_pet_fn="era5_hourly", pet_method="debruin")
-    model.setup_landuse(
-        soiltype=1, croptype=11, source="osm", landuse_mapping_fn="osm_mapping"
-    )
+    model.setup_landuse(source="osm", landuse_mapping_fn="osm_mapping")
     model.write()
 
     _assert_equal_models(left=athens_votris_model, right=model.root.path)

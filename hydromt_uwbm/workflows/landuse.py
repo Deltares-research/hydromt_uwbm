@@ -47,7 +47,7 @@ def landuse_from_osm(
     da_unpaved = region.copy().assign(reclass="unpaved")
 
     # Merge all lines
-    ds_joined = pd.concat([roads, railways, waterways])
+    ds_joined: gpd.GeoDataFrame = pd.concat([roads, railways, waterways])
     ds_joined = ds_joined.merge(landuse_mapping, on="fclass", how="left")
 
     # Buildings and water polygons
@@ -60,7 +60,7 @@ def landuse_from_osm(
     da_water_lines = _linestring_buffer(ds_joined, "water")
 
     # Add water lines to water areas
-    da_water = pd.concat([da_water_area, da_water_lines])
+    da_water: gpd.GeoDataFrame = pd.concat([da_water_area, da_water_lines])
 
     # Combine all layers
     layers: list[gpd.GeoDataFrame] = [
@@ -108,10 +108,8 @@ def landuse_table(lu_map: gpd.GeoDataFrame) -> pd.DataFrame:
     water = lu_table[lu_table["reclass"] == "water"]
     if water.empty or water["area"].sum() < 0.01 * tot_area:
         if water.empty:
-            lu_table = pd.concat(
-                [lu_table, pd.DataFrame([{"reclass": "water", "area": 0}])],
-                ignore_index=True,
-            )
+            # Add water row to the end if not present
+            lu_table.loc[len(lu_table)] = {"reclass": "water", "area": 0}
         area_tot_new = tot_area / 0.99
         lu_table.loc[lu_table["reclass"] == "water", "area"] += area_tot_new * 0.01
         lu_table["frac"] = (lu_table["area"] / area_tot_new).round(3)
@@ -146,7 +144,7 @@ def landuse_table(lu_map: gpd.GeoDataFrame) -> pd.DataFrame:
     return lu_table
 
 
-def _linestring_buffer(input_ds, reclass):
+def _linestring_buffer(input_ds: gpd.GeoDataFrame, reclass: str) -> gpd.GeoDataFrame:
     """Generating buffers with varying sized depending on land use category.
 
     Parameters
@@ -170,7 +168,9 @@ def _linestring_buffer(input_ds, reclass):
     return output_ds
 
 
-def _combine_layers(ds_base, ds_add):
+def _combine_layers(
+    ds_base: gpd.GeoDataFrame, ds_add: gpd.GeoDataFrame
+) -> gpd.GeoDataFrame:
     """Combining two GeoDataFrame layers into a single GeoDataFrame layer.
 
     Parameters

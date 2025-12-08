@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from hydromt_uwbm.components.config import UWBMConfig
+from hydromt_uwbm.components.config import UwbmConfig
 
 
 @pytest.fixture
@@ -18,8 +18,8 @@ def endtime() -> datetime:
 
 
 @pytest.fixture
-def minimal_config(starttime: datetime, endtime: datetime) -> UWBMConfig:
-    return UWBMConfig(
+def minimal_config(starttime: datetime, endtime: datetime) -> UwbmConfig:
+    return UwbmConfig(
         name="Minimal config",
         starttime=starttime,
         endtime=endtime,
@@ -27,35 +27,35 @@ def minimal_config(starttime: datetime, endtime: datetime) -> UWBMConfig:
     )
 
 
-def test_write_read_cycle(tmp_path: Path, minimal_config: UWBMConfig):
-    path = tmp_path / "config.toml"
+def test_write_read_cycle(tmp_path: Path, minimal_config: UwbmConfig):
+    path = tmp_path / "config.ini"
     with open(path, "w") as f:
-        f.write(minimal_config.to_toml())
+        f.write(minimal_config.to_ini())
     with open(path, "rb") as f:
         read_data = tomllib.load(f)
-    read_cfg = UWBMConfig.create(read_data)
+    read_cfg = UwbmConfig.create(read_data)
     assert read_cfg == minimal_config
 
 
 # --------------------------------------------------------------------------
 # Test validation errors
 # --------------------------------------------------------------------------
-def test_missing_field_serialization_error(tmp_path: Path, minimal_config: UWBMConfig):
+def test_missing_field_serialization_error(tmp_path: Path, minimal_config: UwbmConfig):
     minimal_config._SECTIONS.pop(0)  # remove a section to cause serialization error
     with pytest.raises(ValueError, match="Some required fields were not serialized:"):
-        minimal_config.to_toml()
+        minimal_config.to_ini()
 
 
-def test_missing_required_fields(minimal_config: UWBMConfig):
+def test_missing_required_fields(minimal_config: UwbmConfig):
     minimal_config.name = None  # required field
 
     with pytest.raises(ValueError, match="Some required fields were not serialized:"):
-        minimal_config.to_toml()
+        minimal_config.to_ini()
 
 
 def test_invalid_fraction(starttime, endtime):
     with pytest.raises(ValueError, match="Input should be less than or equal to 1"):
-        UWBMConfig(
+        UwbmConfig(
             name="Bad fraction",
             starttime=starttime,
             endtime=endtime,
@@ -81,7 +81,7 @@ def test_create_validation_messages():
     }
 
     with pytest.raises(ValueError) as excinfo:  # noqa: PT011
-        UWBMConfig.create(test_data)
+        UwbmConfig.create(test_data)
 
     msg = str(excinfo.value)
     print(msg)  # for debugging

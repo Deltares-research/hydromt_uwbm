@@ -11,16 +11,14 @@ from pydantic import BaseModel, Field, ValidationError
 from pydantic_core import PydanticUndefined
 
 if TYPE_CHECKING:
-    from hydromt_uwbm.uwbm import UWBM
+    pass
 
-__all__ = ["UWBMConfigComponent", "UWBMConfig"]
+__all__ = ["UWBMConfigComponent", "UwbmConfig"]
 
 logger = logging.getLogger(__name__)
 
 
 class UWBMConfigComponent(ConfigComponent):
-    model: "UWBM"
-
     @hydromt_step
     def write(self, file_path: str | None = None) -> None:
         """Write configuration data to files."""
@@ -41,14 +39,14 @@ class UWBMConfigComponent(ConfigComponent):
 
         write_data = _make_config_paths_relative(self.data, self.root.path)
 
-        config = UWBMConfig.create(write_data)
+        config = UwbmConfig.create(write_data)
         path = Path(path)
         path.parent.mkdir(parents=True, exist_ok=True)
         with open(path, "w") as f:
-            f.write(config.to_toml())
+            f.write(config.to_ini())
 
 
-class UWBMConfig(BaseModel):
+class UwbmConfig(BaseModel):
     # run
     title: str = Field(
         default="Neighbourhood config",
@@ -70,18 +68,18 @@ class UWBMConfig(BaseModel):
         default=...,
         description="Timestep length in seconds [3600: hourly, 86400: daily]",
     )
-
-    # landuse
-    soiltype: int | None = Field(
-        default=None,
+    soiltype: int = Field(
+        default=7,
         description="Soil type",
         ge=0,
     )
-    croptype: int | None = Field(
-        default=None,
+    croptype: int = Field(
+        default=1,
         description="Crop type",
         ge=0,
     )
+
+    # landuse
     tot_area: float | None = Field(
         default=None,
         description="Total area of the study area [m2]",
@@ -409,7 +407,7 @@ class UWBMConfig(BaseModel):
     class Config:
         keep_untouched = ()  # keep order stable
 
-    def to_toml(self) -> str:
+    def to_ini(self) -> str:
         def fmt(v: Any) -> str:
             if isinstance(v, str):
                 return f'"{v}"'
@@ -445,7 +443,7 @@ class UWBMConfig(BaseModel):
                 if value is None:
                     continue
                 serialized_fields.add(name)
-                desc = UWBMConfig.model_fields[name].description
+                desc = UwbmConfig.model_fields[name].description
                 assignment = f"{name} = {fmt(value)}"
                 if isinstance(value, (int, float, str, bool, datetime)):
                     simple_entries.append((assignment, desc))
@@ -473,18 +471,18 @@ class UWBMConfig(BaseModel):
 
         fields_with_defaults = {
             name
-            for name, field in UWBMConfig.model_fields.items()
+            for name, field in UwbmConfig.model_fields.items()
             if field.default is not PydanticUndefined and field.default is not None
         }
         required_fields = {
             name
-            for name, field in UWBMConfig.model_fields.items()
+            for name, field in UwbmConfig.model_fields.items()
             if field.default is PydanticUndefined
         }
         expected_fields = fields_with_defaults | required_fields
         missing = expected_fields - serialized_fields
         if missing:
-            # If you want to add an optional / required var to the config, please add them to the correct section in ``UWBMConfig._SECTIONS``.
+            # If you want to add an optional / required var to the config, please add them to the correct section in ``UwbmConfig._SECTIONS``.
             raise ValueError(
                 f"Some required fields were not serialized: {missing}.\nPlease set these using functions ``UWMB.setup_x`` and/or ``UWMB.set_config()``."
             )
@@ -492,23 +490,23 @@ class UWBMConfig(BaseModel):
         return "\n".join(lines)
 
     @staticmethod
-    def from_file(path: Path) -> "UWBMConfig":
+    def from_file(path: Path) -> "UwbmConfig":
         with open(path, "rb") as f:
             cfg = tomllib.load(f)
-        return UWBMConfig.create(cfg)
+        return UwbmConfig.create(cfg)
 
     @staticmethod
-    def create(data: dict) -> "UWBMConfig":
+    def create(data: dict) -> "UwbmConfig":
         """
-        Validate a config dict against UWBMConfig and return nicely formatted messages.
+        Validate a config dict against UwbmConfig and return nicely formatted messages.
         Returns:
             invalid_params: list of "param_name: value, error message, param_description"
             unknown_params: list of unknown keys
         """
         try:
-            return UWBMConfig(**data)
+            return UwbmConfig(**data)
         except ValidationError as e:
-            all_keys = set(UWBMConfig.model_fields.keys())
+            all_keys = set(UwbmConfig.model_fields.keys())
             unknown_keys = [k for k in data.keys() if k not in all_keys]
             invalid_params: list[str] = []
 
@@ -520,8 +518,8 @@ class UWBMConfig(BaseModel):
                 key = loc[0]
                 # Grab description if available
                 desc = (
-                    UWBMConfig.model_fields[key].description
-                    if key in UWBMConfig.model_fields
+                    UwbmConfig.model_fields[key].description
+                    if key in UwbmConfig.model_fields
                     else None
                 )
 

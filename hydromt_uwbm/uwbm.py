@@ -52,9 +52,9 @@ class UWBM(Model):
         """
         self.config = UWBMConfigComponent(
             self,
-            filename="input/neighbourhood_params.toml",
+            filename="input/neighbourhood_params.ini",
             default_template_filename=(
-                DATADIR / "UWBM/neighbourhood_params.toml"
+                DATADIR / "UWBM/neighbourhood_params.ini"
             ).as_posix(),
         )
         self.forcing = UWBMForcingComponent(self, filename="input/{name}.csv")
@@ -96,7 +96,7 @@ class UWBM(Model):
         t_start: str | datetime.datetime,
         t_end: str | datetime.datetime,
         ts: int = 3600,
-        crs: int = 4326,
+        crs: int = 3857,
     ):
         """Setup project geometry from vector."""
         if ts not in [3600, 86400]:
@@ -264,8 +264,6 @@ class UWBM(Model):
 
     def setup_landuse(
         self,
-        soiltype: int,
-        croptype: int,
         source: str = "osm",
         landuse_mapping_fn: str | None = None,
     ):
@@ -285,10 +283,6 @@ class UWBM(Model):
 
         Parameters
         ----------
-        soiltype: int
-            Soil type code according to UWB model documentation.
-        croptype: int
-            Crop type code according to UWB model documentation.
         source: str, optional
             Source of landuse base files. Current default is "osm".
         landuse_mapping_fn: str, optional
@@ -379,9 +373,6 @@ class UWBM(Model):
                 f"landuse_frac.{reclass}",
                 float(df_landuse.loc[df_landuse["reclass"] == reclass, "frac"].iloc[0]),
             )
-
-        self.config.set("soiltype", soiltype)
-        self.config.set("croptype", croptype)
 
         keys = ["op", "ow", "up", "pr", "cp"]
         for key in keys:
