@@ -2,16 +2,13 @@ import logging
 import tomllib
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Literal
+from typing import Any, Literal
 
 from hydromt import hydromt_step
 from hydromt._utils.path import _make_config_paths_relative
 from hydromt.model.components.config import ConfigComponent
 from pydantic import BaseModel, Field, ValidationError
 from pydantic_core import PydanticUndefined
-
-if TYPE_CHECKING:
-    pass
 
 __all__ = ["UWBMConfigComponent", "UwbmConfig"]
 
