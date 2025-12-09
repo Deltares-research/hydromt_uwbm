@@ -1,0 +1,130 @@
+[
+  {
+    "objectID": "user_guide/uwbm.html",
+    "href": "user_guide/uwbm.html",
+    "title": "1 Model methods and components",
+    "section": "",
+    "text": "The HydroMT plugin UWBM plugin helps you preparing or updating several methods of a uwbm model such as static parameters or forcing. The main interactions are available from the HydroMT Command Line Interface and allow you to configure HydroMT in order to build or update uwbm models.\nWhen building or updating a model from command line a model region; a model setup configuration (.yml) file with model methods and options and a data sources (.yml) file should be prepared.\n\n\nAn overview of the available uwbm model setup methods is provided in the table below. When using HydroMT from the command line only the setup, read, write methods are exposed. Click on a specific method see its documentation.\n\n\n\n\n\n\n\nMethod\nExplanation\n\n\n\n\nsetup_project\nGeneral model setup, including preparing the region geometry from a region dictionary, and defining timing and CRS.\n\n\nsetup_landuse\nGenerates a landuse map for the region based on provided base files.\n\n\nsetup_precip_forcing\nGenerates area-averaged, tabular precipitation forcing for the region geometry.\n\n\nsetup_pet_forcing\nGenerates area-averaged, tabular reference evapotranspiration forcing for the region geometry.\n\n\n\n\n\n\nThe following table provides an overview of which UWBM component contains which uwbm in- and output files. The files are read and written with the associated read- and write- methods, i.e. model.config.read and model.config.write for the config component.\n\n\n\nComponent\nExplanation\n\n\n\n\nconfig\nModel configuration file.\n\n\nlanduse\nModel landuse maps and gridded data.\n\n\ngeoms\nModel geometries.\n\n\nforcing\nModel forcing data.",
+    "crumbs": [
+      "Getting started",
+      "User guide",
+      "Model methods and components"
+    ]
+  },
+  {
+    "objectID": "user_guide/uwbm.html#model-setup-methods",
+    "href": "user_guide/uwbm.html#model-setup-methods",
+    "title": "1 Model methods and components",
+    "section": "",
+    "text": "An overview of the available uwbm model setup methods is provided in the table below. When using HydroMT from the command line only the setup, read, write methods are exposed. Click on a specific method see its documentation.\n\n\n\n\n\n\n\nMethod\nExplanation\n\n\n\n\nsetup_project\nGeneral model setup, including preparing the region geometry from a region dictionary, and defining timing and CRS.\n\n\nsetup_landuse\nGenerates a landuse map for the region based on provided base files.\n\n\nsetup_precip_forcing\nGenerates area-averaged, tabular precipitation forcing for the region geometry.\n\n\nsetup_pet_forcing\nGenerates area-averaged, tabular reference evapotranspiration forcing for the region geometry.",
+    "crumbs": [
+      "Getting started",
+      "User guide",
+      "Model methods and components"
+    ]
+  },
+  {
+    "objectID": "user_guide/uwbm.html#model-components-and-attributes",
+    "href": "user_guide/uwbm.html#model-components-and-attributes",
+    "title": "1 Model methods and components",
+    "section": "",
+    "text": "The following table provides an overview of which UWBM component contains which uwbm in- and output files. The files are read and written with the associated read- and write- methods, i.e. model.config.read and model.config.write for the config component.\n\n\n\nComponent\nExplanation\n\n\n\n\nconfig\nModel configuration file.\n\n\nlanduse\nModel landuse maps and gridded data.\n\n\ngeoms\nModel geometries.\n\n\nforcing\nModel forcing data.",
+    "crumbs": [
+      "Getting started",
+      "User guide",
+      "Model methods and components"
+    ]
+  },
+  {
+    "objectID": "index.html#what-is-hydromt-uwbm",
+    "href": "index.html#what-is-hydromt-uwbm",
+    "title": "1 HydroMT UWBM: A HydroMT plugin for the Urban Water Balance Model",
+    "section": "2.1 What is HydroMT UWBM?",
+    "text": "2.1 What is HydroMT UWBM?\nHydroMT (Hydro Model Tools) is an open-source Python package that facilitates the process of building and analyzing spatial geoscientific models with a focus on water system models. It does so by automating the workflow to go from raw data to a complete model instance which is ready to run and to analyze model results once the simulation has finished. This plugin serves to prepare datasets for the Urban Water Balance Model (UWBM)."
+  },
+  {
+    "objectID": "index.html#installation",
+    "href": "index.html#installation",
+    "title": "1 HydroMT UWBM: A HydroMT plugin for the Urban Water Balance Model",
+    "section": "2.2 Installation",
+    "text": "2.2 Installation\nA base installation of the HydroMT package is required for the UWBM plugin. For more information about the prerequisites for an installation of the HydroMT package and related dependencies, please visit the documentation of HydroMT core.\nFollow these steps to install the plugin:\n\nIn the command prompt, navigate to the package root directory (containing the pyproject.toml file).\nexecute “uv sync –all-extras”"
+  },
+  {
+    "objectID": "index.html#example-usage",
+    "href": "index.html#example-usage",
+    "title": "1 HydroMT UWBM: A HydroMT plugin for the Urban Water Balance Model",
+    "section": "2.3 Example usage",
+    "text": "2.3 Example usage\nWithin the REACHOUT project by the European Commission, the CRCTool (with the Urban Water Balance Model as core model) was configured for Athens, Gdynia and Lillestrom as part of the Triple-A Toolbox."
+  },
+  {
+    "objectID": "getting_started/index.html",
+    "href": "getting_started/index.html",
+    "title": "HydroMT plugin UWBM",
+    "section": "",
+    "text": "Installation guide",
+    "crumbs": [
+      "Getting started"
+    ]
+  },
+  {
+    "objectID": "api/index.html",
+    "href": "api/index.html",
+    "title": "1 API Reference",
+    "section": "",
+    "text": "The Model class represents an entire HydroMT plugin UWBM model.\n\n\n\nUWBM\nHydroMT UWBM model class."
+  },
+  {
+    "objectID": "api/index.html#model",
+    "href": "api/index.html#model",
+    "title": "1 API Reference",
+    "section": "",
+    "text": "The Model class represents an entire HydroMT plugin UWBM model.\n\n\n\nUWBM\nHydroMT UWBM model class."
+  },
+  {
+    "objectID": "api/UWBM.html",
+    "href": "api/UWBM.html",
+    "title": "1 UWBM",
+    "section": "",
+    "text": "UWBM(root=None, mode='w+', data_libs=None)\nHydroMT UWBM model class.\nThis class provides a framework for setting up and running the Urban Water Balance Model (UWBM) as part of the HydroMT plugin. It manages the model region, geometries, landuse, forcing data, and configuration parameters.\n\n\n\n\n\nName\nDescription\n\n\n\n\nsetup_landuse\nGenerate landuse map and associated tables for the model region.\n\n\nsetup_pet_forcing\nGenerate area-averaged, tabular reference evapotranspiration (PET) forcing for the model region.\n\n\nsetup_precip_forcing\nGenerate area-averaged, tabular precipitation forcing for geom.\n\n\nsetup_project\nSetup the project geometry and basic configuration.\n\n\n\n\n\nUWBM.setup_landuse(source='osm', landuse_mapping_fn=None)\nGenerate landuse map and associated tables for the model region.\nThis function creates a polygon landuse map and a landuse table based on the provided base files and mapping. It also updates the configuration with landuse area and fraction statistics.\n\n\n\nlu_map: polygon layer containing urban land use\nlu_table: table containing urban land use surface areas [m2]\n\n\n\n\n\nsoiltype: soil type code according to UWB model documentation\ncroptype: crop type code according to UWB model documentation\nlanduse_area: surface area of landuse classes [m2]\nlanduse_frac: surface area fraction of landuse classes [-]\n**tot_*_area**: total area of the UWB land use classes [m2]\n**tot_*_frac**: total area fraction of the UWB land use classes [-]\n\n\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\nDefault\n\n\n\n\nsource\nstr\nSource of landuse base files. Current default is “osm”.\n'osm'\n\n\nlanduse_mapping_fn\nstr or None\nName of the landuse mapping translation table. Default is None, in which case the default translation table for the source is used.\nNone\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\n\n\n\n\n\nNone\nUpdates the model’s geoms, landuse, and config objects in-place.\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\n\n\n\n\n\nIOError\nIf the provided source is invalid, the mapping file is missing, or the translation table is malformed.\n\n\n\nValueError\nIf the translation table columns are not of correct type or contain invalid classes.\n\n\n\n\n\n\nFor the “osm” source, the following layers are extracted from the data catalog: - osm_roads - osm_railways - osm_waterways - osm_buildings - osm_water\nThe landuse table is generated from the landuse map and provides area and fraction for each reclassified landuse type. Total areas and fractions are calculated for main categories.\n\n\n\n\n\n\nmodel.setup_landuse(source=“osm”)\n\n\n\n\n\n\n\nUWBM.setup_pet_forcing(temp_pet_fn='era5_hourly', pet_method='debruin')\nGenerate area-averaged, tabular reference evapotranspiration (PET) forcing for the model region.\nThis function adds a model layer for reference evapotranspiration:\n\npet: reference evapotranspiration [mm]\n\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\nDefault\n\n\n\n\ntemp_pet_fn\nstr\nName or path of the data source containing variables required to calculate temperature and reference evapotranspiration (default is ‘era5_hourly’). See data/forcing_sources.yml for available datasets. Required variables: - For temperature: [‘temp’] - For De Bruin PET: [‘temp’, ‘press_msl’, ‘kin’, ‘kout’] - For Makkink PET: [‘temp’, ‘press_msl’, ‘kin’]\n'era5_hourly'\n\n\npet_method\nstr\nMethod used to calculate reference evapotranspiration (default is ‘debruin’). Options: - ‘debruin’: calculates PET using the De Bruin method - ‘makkink’: calculates PET using the Makkink method\n'debruin'\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\n\n\n\n\n\nNone\nUpdates the model’s forcing object in-place with PET data.\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\n\n\n\n\n\nValueError\nIf pet_method is not one of ‘debruin’ or ‘makkink’.\n\n\n\n\n\n\nThe PET data is resampled to match the model timestep. The output DataFrame includes both potential evapotranspiration (E_pot_OW) and reference grass evapotranspiration (Ref.grass). Attributes of the DataFrame include the data source (pet_fn) and the calculation method (pet_method).\n\n\n\n\n\n\nmodel.setup_pet_forcing(temp_pet_fn=“era5_hourly”, pet_method=“debruin”)\n\n\n\n\n\n\n\nUWBM.setup_precip_forcing(precip_fn='era5_hourly', **kwargs)\nGenerate area-averaged, tabular precipitation forcing for geom.\nAdds model layer:\n\nprecip: precipitation [mm]\n\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\nDefault\n\n\n\n\nprecip_fn\nstr\nPrecipitation data source. Required variable: [‘precip’]\nera5_hourly\n\n\nkwargs\nadditional keyword arguments\nAdditional keyword arguments passed to data catalog get_rasterdataset method.\n{}\n\n\n\n\n\n\n\nUWBM.setup_project(region, name, t_start, t_end, ts=3600, crs=3857)\nSetup the project geometry and basic configuration.\nThis function initializes the model region from a vector, sets the time range, timestep, coordinate reference system, and project name.\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\nDefault\n\n\n\n\nregion\ndict\nDictionary describing the project region (e.g., geometry or boundary info).\nrequired\n\n\nname\nstr\nName of the project.\nrequired\n\n\nt_start\nstr or datetime.datetime\nStart time of the simulation. If a string is provided, it will be converted to a datetime object.\nrequired\n\n\nt_end\nstr or datetime.datetime\nEnd time of the simulation. If a string is provided, it will be converted to a datetime object.\nrequired\n\n\nts\nint\nTimestep in seconds (default is 3600). Must be either 3600 (hourly) or 86400 (daily).\n3600\n\n\ncrs\nint\nCoordinate reference system for the project geometry (default is 3857).\n3857\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\n\n\n\n\n\nNone\nUpdates the model’s geoms and config objects in-place.\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\n\n\n\n\n\nValueError\nIf ts is not 3600 or 86400.\n\n\n\n\n\n\nThe project geometry is processed through _parse_region and stored in the geoms object under the name “region”. The configuration settings such as start time, end time, timestep, and project name are stored in config.\n\n\n\n\n\n\nmodel.setup_project(region=my_region_dict, name=“TestProject”, t_start=“2025-01-01”, t_end=“2025-12-31”)"
+  },
+  {
+    "objectID": "api/UWBM.html#methods",
+    "href": "api/UWBM.html#methods",
+    "title": "1 UWBM",
+    "section": "",
+    "text": "Name\nDescription\n\n\n\n\nsetup_landuse\nGenerate landuse map and associated tables for the model region.\n\n\nsetup_pet_forcing\nGenerate area-averaged, tabular reference evapotranspiration (PET) forcing for the model region.\n\n\nsetup_precip_forcing\nGenerate area-averaged, tabular precipitation forcing for geom.\n\n\nsetup_project\nSetup the project geometry and basic configuration.\n\n\n\n\n\nUWBM.setup_landuse(source='osm', landuse_mapping_fn=None)\nGenerate landuse map and associated tables for the model region.\nThis function creates a polygon landuse map and a landuse table based on the provided base files and mapping. It also updates the configuration with landuse area and fraction statistics.\n\n\n\nlu_map: polygon layer containing urban land use\nlu_table: table containing urban land use surface areas [m2]\n\n\n\n\n\nsoiltype: soil type code according to UWB model documentation\ncroptype: crop type code according to UWB model documentation\nlanduse_area: surface area of landuse classes [m2]\nlanduse_frac: surface area fraction of landuse classes [-]\n**tot_*_area**: total area of the UWB land use classes [m2]\n**tot_*_frac**: total area fraction of the UWB land use classes [-]\n\n\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\nDefault\n\n\n\n\nsource\nstr\nSource of landuse base files. Current default is “osm”.\n'osm'\n\n\nlanduse_mapping_fn\nstr or None\nName of the landuse mapping translation table. Default is None, in which case the default translation table for the source is used.\nNone\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\n\n\n\n\n\nNone\nUpdates the model’s geoms, landuse, and config objects in-place.\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\n\n\n\n\n\nIOError\nIf the provided source is invalid, the mapping file is missing, or the translation table is malformed.\n\n\n\nValueError\nIf the translation table columns are not of correct type or contain invalid classes.\n\n\n\n\n\n\nFor the “osm” source, the following layers are extracted from the data catalog: - osm_roads - osm_railways - osm_waterways - osm_buildings - osm_water\nThe landuse table is generated from the landuse map and provides area and fraction for each reclassified landuse type. Total areas and fractions are calculated for main categories.\n\n\n\n\n\n\nmodel.setup_landuse(source=“osm”)\n\n\n\n\n\n\n\nUWBM.setup_pet_forcing(temp_pet_fn='era5_hourly', pet_method='debruin')\nGenerate area-averaged, tabular reference evapotranspiration (PET) forcing for the model region.\nThis function adds a model layer for reference evapotranspiration:\n\npet: reference evapotranspiration [mm]\n\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\nDefault\n\n\n\n\ntemp_pet_fn\nstr\nName or path of the data source containing variables required to calculate temperature and reference evapotranspiration (default is ‘era5_hourly’). See data/forcing_sources.yml for available datasets. Required variables: - For temperature: [‘temp’] - For De Bruin PET: [‘temp’, ‘press_msl’, ‘kin’, ‘kout’] - For Makkink PET: [‘temp’, ‘press_msl’, ‘kin’]\n'era5_hourly'\n\n\npet_method\nstr\nMethod used to calculate reference evapotranspiration (default is ‘debruin’). Options: - ‘debruin’: calculates PET using the De Bruin method - ‘makkink’: calculates PET using the Makkink method\n'debruin'\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\n\n\n\n\n\nNone\nUpdates the model’s forcing object in-place with PET data.\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\n\n\n\n\n\nValueError\nIf pet_method is not one of ‘debruin’ or ‘makkink’.\n\n\n\n\n\n\nThe PET data is resampled to match the model timestep. The output DataFrame includes both potential evapotranspiration (E_pot_OW) and reference grass evapotranspiration (Ref.grass). Attributes of the DataFrame include the data source (pet_fn) and the calculation method (pet_method).\n\n\n\n\n\n\nmodel.setup_pet_forcing(temp_pet_fn=“era5_hourly”, pet_method=“debruin”)\n\n\n\n\n\n\n\nUWBM.setup_precip_forcing(precip_fn='era5_hourly', **kwargs)\nGenerate area-averaged, tabular precipitation forcing for geom.\nAdds model layer:\n\nprecip: precipitation [mm]\n\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\nDefault\n\n\n\n\nprecip_fn\nstr\nPrecipitation data source. Required variable: [‘precip’]\nera5_hourly\n\n\nkwargs\nadditional keyword arguments\nAdditional keyword arguments passed to data catalog get_rasterdataset method.\n{}\n\n\n\n\n\n\n\nUWBM.setup_project(region, name, t_start, t_end, ts=3600, crs=3857)\nSetup the project geometry and basic configuration.\nThis function initializes the model region from a vector, sets the time range, timestep, coordinate reference system, and project name.\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\nDefault\n\n\n\n\nregion\ndict\nDictionary describing the project region (e.g., geometry or boundary info).\nrequired\n\n\nname\nstr\nName of the project.\nrequired\n\n\nt_start\nstr or datetime.datetime\nStart time of the simulation. If a string is provided, it will be converted to a datetime object.\nrequired\n\n\nt_end\nstr or datetime.datetime\nEnd time of the simulation. If a string is provided, it will be converted to a datetime object.\nrequired\n\n\nts\nint\nTimestep in seconds (default is 3600). Must be either 3600 (hourly) or 86400 (daily).\n3600\n\n\ncrs\nint\nCoordinate reference system for the project geometry (default is 3857).\n3857\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\n\n\n\n\n\nNone\nUpdates the model’s geoms and config objects in-place.\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\n\n\n\n\n\nValueError\nIf ts is not 3600 or 86400.\n\n\n\n\n\n\nThe project geometry is processed through _parse_region and stored in the geoms object under the name “region”. The configuration settings such as start time, end time, timestep, and project name are stored in config.\n\n\n\n\n\n\nmodel.setup_project(region=my_region_dict, name=“TestProject”, t_start=“2025-01-01”, t_end=“2025-12-31”)"
+  },
+  {
+    "objectID": "contributing/index.html",
+    "href": "contributing/index.html",
+    "title": "HydroMT plugin UWBM",
+    "section": "",
+    "text": "If you would like to contribute, we follow the same guide as HydroMT developper’s guide.",
+    "crumbs": [
+      "Getting started",
+      "Contributing"
+    ]
+  },
+  {
+    "objectID": "getting_started/installation.html",
+    "href": "getting_started/installation.html",
+    "title": "1 Prerequisites",
+    "section": "",
+    "text": "1 Prerequisites\nFor more information about the prerequisites for an installation of the HydroMT package and related dependencies, please visit the documentation of HydroMT core\n\n\n2 Installation\n\n\n3 Using Hydromt UWBM\nTo start using Hydromt UWBM, you only need to add this line to your projects dependencies: \"hydromt_uwbm @ git+https://github.com/Deltares-research/hydromt_uwbm\"\n\n\n4 Developper installation\nTo generate a usable python development environment you’ll need to have uv installed. You can simply install this from their website.\nWith uv installed, you can now add hydromt_uwbm to your environment in various ways:\n\nCLI\n\n\ncd &lt;project_dir&gt;\nuv add \"hydromt_uwbm @ git+https://github.com/Deltares-research/hydromt_uwbm\"\n\n\npyproject.toml\n\n\nadd \"hydromt_uwbm @ git+https://github.com/Deltares-research/hydromt_uwbm\" to the dependencies section in a pyproject.toml file.\n\n\nenironment.yml\n\n\nadd - pip to the dependencies list to ensure pip is installed\nadd - pip: to specify a list of packages to install from pypi\nadd \"hydromt_uwbm @ git+https://github.com/Deltares-research/hydromt_uwbm\" to the pip section.\n\nAfter adding the dependency, install your updated environment. (with uv: uv sync --all-extras)",
+    "crumbs": [
+      "Getting started",
+      "Installation"
+    ]
+  },
+  {
+    "objectID": "user_guide/index.html",
+    "href": "user_guide/index.html",
+    "title": "HydroMT plugin UWBM",
+    "section": "",
+    "text": "With the HydroMT plugin UWBM plugin, users can easily benefit from the rich set of tools of the HydroMT package to build and update uwbm models from available global and local data.\nThis plugin assists the uwbm modeller in:\n\nQuickly setting up a base uwbm model and default parameter values\nMaking maximum use of the best available global or local data\nAdjusting and updating components of a uwbm model and their associated parameters in a consistent way\n\nOne uwbm Model classes is currently available:\n\nuwbm (Model): class for the uwbm model.",
+    "crumbs": [
+      "Getting started",
+      "User guide"
+    ]
+  }
+]

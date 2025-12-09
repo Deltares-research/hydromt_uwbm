@@ -1,5 +1,0 @@
-osm_mapping_default:
-  data_type: DataFrame
-  driver:
-    name: pandas
-  uri: ./landuse/osm_mapping_default.csv
