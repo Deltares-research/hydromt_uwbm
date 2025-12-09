@@ -1,0 +1,76 @@
+# This is a TOML-format neighbourhood (base) configuration file.
+# [-] indicates fraction, please type 0.75 to represent 75%.
+
+###########
+# overall #
+###########
+
+title = "Neighbourhood config" # Title of the configuration
+area_type = 0                  # Area input type [0: fraction(default), 1: area]
+
+##############
+# paved roof #
+##############
+
+frac_pr_aboveGW = 1.0 # Part of buildings above Groundwater [-]
+discfrac_pr = 0.1     # Part of paved roof disconnected from sewer system [-]
+intstorcap_pr = 3.0   # Internal storage capacity of paved roof
+intstor_pr_t0 = 0.0   # Initial internal storage of paved roof
+
+################
+# closed paved #
+################
+
+discfrac_cp = 0.05  # Part of closed paved disconnected from sewer system [-]
+intstorcap_cp = 2.0 # Internal storage capacity of closed paved
+intstor_cp_t0 = 0.0 # Initial internal storage of closed paved
+
+##############
+# open paved #
+##############
+
+discfrac_op = 0.5   # Part of open paved disconnected from sewer system [-]
+intstorcap_op = 4.0 # Internal storage capacity of open paved
+infilcap_op = 24.0  # Infiltration capacity of open paved
+intstor_op_t0 = 0.0 # Initial internal storage of open paved
+
+###########
+# unpaved #
+###########
+
+intstorcap_up = 5.0     # Internal storage capacity of unpaved
+infilcap_up = 48.0      # Infiltration capacity of unpaved
+fin_intstor_up_t0 = 0.0 # Initial internal storage of unpaved
+
+###############
+# groundwater #
+###############
+
+w = 1000.0              # Drainage resistance from groundwater to open water (w) [d]
+seepage_define = 0      # Seepage to deep groundwater defined as either constant downward flux or dynamic computed flux determined by head difference and resistance [0=flux; 1=level]
+down_seepage_flux = 0.0 # Constant downward flux from shallow groundwater to deep groundwater [mm/d]
+head_deep_gw = 20.0     # Hydraulic head of deep groundwater [m below ground level]
+vc = 100000.0           # Vertical flow resistance from shallow groundwater to deep groundwater (vc) [d]
+gwl_t0 = 1.5            # Initial groundwater level (at t=0) relating to "storcap_ow" [m-SL]
+
+##############
+# open water #
+##############
+
+frac_ow_aboveGW = 0.0 # Part of open water above Groundwater [-]
+storcap_ow = 1500.0   # Storage capacity of open water
+q_ow_out_cap = 3.0    # Outflow capacity of open water
+
+################
+# sewer system #
+################
+
+swds_frac = 0.25       # Part of urban paved area with SWDS [-]
+storcap_swds = 2.0     # Storage capacity of SWDS
+storcap_mss = 2.0      # Storage capacity of MSS
+rainfall_swds_so = 8.0 # Rainfall intensity for SWDS overflow [mm/timestep]
+rainfall_mss_ow = 8.0  # Rainfall intensity for MSS overflow [mm/timestep]
+stor_swds_t0 = 0.0     # Initial storage of SWDS at t=0
+so_swds_t0 = 0.0       # Initial outflow from SWDS at t=0
+stor_mss_t0 = 0.0      # Initial storage of MSS at t=0
+so_mss_t0 = 0.0        # Initial outflow from MSS at t=0
