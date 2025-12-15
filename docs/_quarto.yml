@@ -1,34 +1,66 @@
 project:
   type: website
+  render:
+    - "*.qmd"
+    - "*.ipynb"
+    - "!how-to-build.md"
 
 website:
   title: "HydroMT plugin UWBM"
+  repo-url: https://github.com/Deltares-research/hydromt_uwbm
+  repo-actions: [source, issue]
+  issue-url: https://github.com/Deltares-research/hydromt_uwbm/issues/new/choose
   page-navigation: true
+  search:
+    location: navbar
+    limit: 5
+    type: textbox
+  page-footer:
+    left: |
+      Made possible by:
+        <a href="https://www.deltares.nl/en" target="_blank" rel="noreferrer noopener">
+          <img
+            src="/assets/deltares-blue.svg"
+            alt="Deltares"
+            style="height: 40px;"
+          />
+        </a>
+
   navbar:
+    logo: assets/logo.jpeg
+    title: HydroMT UWBM
+    pinned: true
     left:
       - text: "Getting started"
         file: getting_started/index.qmd
       - text: "User guide"
         file: user_guide/index.qmd
+      - text: API
+        file: api/index.qmd
       - text: "Contributing"
         file: contributing/index.qmd
     right:
       - icon: github
-        href: https://github.com/daanrooze/hydromt_uwbm
+        href: https://github.com/Deltares-research/hydromt_uwbm
         aria-label: GitHub
 
   sidebar:
-    - title: "Getting started"
-      contents:
-        - getting_started/index.qmd
-        - getting_started/installation.qmd
-    - title: "User guide"
-      contents:
-        - user_guide/index.qmd
-        - user_guide/uwbm.qmd
-    - title: "Contributing"
-      contents:
-        - contributing/index.qmd
+    style: docked
+    search: true
+    contents:
+      - section: "Getting started"
+        file: getting_started/index.qmd
+        contents:
+          - text: Installation
+            file: getting_started/installation.qmd
+
+      - section: "User guide"
+        file: user_guide/index.qmd
+        contents:
+          - user_guide/uwbm.qmd
+
+      - section: "Contributing"
+        file: contributing/index.qmd
 
 format:
   html:
@@ -41,7 +73,7 @@ number-sections: true
 
 quartodoc:
   style: pkgdown
-  dir: _generated
+  dir: api
   title: API Reference
   package: hydromt_uwbm
   sections:

@@ -2,4 +2,4 @@
 Title: 'Contributing'
 ---
 
-If you would like to contribute, we follow the same guide as [HydroMT developper's guide](https://deltares.github.io/hydromt/latest/dev/contributing).
+If you would like to contribute, we follow the same guide as [HydroMT developper's guide](https://deltares.github.io/hydromt/latest/dev/plugin_dev/index.html).

@@ -22,7 +22,12 @@ logger = logging.getLogger(__name__)
 
 
 class UWBM(Model):
-    """This is the uwbm class."""
+    """HydroMT UWBM model class.
+
+    This class provides a framework for setting up and running the Urban Water Balance Model (UWBM)
+    as part of the HydroMT plugin. It manages the model region, geometries, landuse, forcing data,
+    and configuration parameters.
+    """
 
     name: str = "UWBM"
 
@@ -98,7 +103,49 @@ class UWBM(Model):
         ts: int = 3600,
         crs: int = 3857,
     ):
-        """Setup project geometry from vector."""
+        """
+        Setup the project geometry and basic configuration.
+
+        This function initializes the model region from a vector, sets the
+        time range, timestep, coordinate reference system, and project name.
+
+        Parameters
+        ----------
+        region : dict
+            Dictionary describing the project region (e.g., geometry or boundary info).
+        name : str
+            Name of the project.
+        t_start : str or datetime.datetime
+            Start time of the simulation. If a string is provided, it will be
+            converted to a `datetime` object.
+        t_end : str or datetime.datetime
+            End time of the simulation. If a string is provided, it will be
+            converted to a `datetime` object.
+        ts : int, optional
+            Timestep in seconds (default is 3600). Must be either 3600 (hourly) or 86400 (daily).
+        crs : int, optional
+            Coordinate reference system for the project geometry (default is 3857).
+
+        Returns
+        -------
+        None
+            Updates the model's `geoms` and `config` objects in-place.
+
+        Raises
+        ------
+        ValueError
+            If `ts` is not 3600 or 86400.
+
+        Notes
+        -----
+        The project geometry is processed through `_parse_region` and stored
+        in the `geoms` object under the name "region". The configuration settings
+        such as start time, end time, timestep, and project name are stored in `config`.
+
+        Example
+        -------
+        >>> model.setup_project(region=my_region_dict, name="TestProject", t_start="2025-01-01", t_end="2025-12-31")
+        """
         if ts not in [3600, 86400]:
             raise ValueError("Timestep must be either 3600 (hours) or 86400 (days)")
 
@@ -129,9 +176,10 @@ class UWBM(Model):
         Parameters
         ----------
         precip_fn : str, default era5_hourly
-            Precipitation data source.
-
-            * Required variable: ['precip']
+            Precipitation data source. Required variable: ['precip']
+        kwargs : additional keyword arguments
+            Additional keyword arguments passed to data catalog get_rasterdataset
+            method.
         """
         if precip_fn is None:
             return
@@ -165,29 +213,53 @@ class UWBM(Model):
         temp_pet_fn: str = "era5_hourly",
         pet_method: str = "debruin",
     ) -> None:
-        """Generate area-averaged, tabular reference evapotranspiration forcing for geom
+        """
+        Generate area-averaged, tabular reference evapotranspiration (PET) forcing for the model region.
 
-        Adds model layer:
+        This function adds a model layer for reference evapotranspiration:
 
-        * **pet**: reference evapotranspiration [mm]
+        - **pet**: reference evapotranspiration [mm]
 
         Parameters
         ----------
         temp_pet_fn : str, optional
-            Name or path of data source with variables to calculate temperature
-            and reference evapotranspiration, see data/forcing_sources.yml.
-            By default 'era5_hourly'.
+            Name or path of the data source containing variables required to calculate
+            temperature and reference evapotranspiration (default is 'era5_hourly').
+            See `data/forcing_sources.yml` for available datasets.
 
-            * Required variable for temperature: ['temp']
+            Required variables:
 
-            * Required variables for De Bruin reference evapotranspiration: \
-                ['temp', 'press_msl', 'kin', 'kout']
+            - For temperature: ['temp']
+            - For De Bruin PET: ['temp', 'press_msl', 'kin', 'kout']
+            - For Makkink PET: ['temp', 'press_msl', 'kin']
 
-            * Required variables for Makkink reference evapotranspiration: \
-                ['temp', 'press_msl', 'kin']
         pet_method : str, optional
-            Method to calculate reference evapotranspiration. Options are
-            'debruin' (default) or 'makkink'.
+            Method used to calculate reference evapotranspiration (default is 'debruin').
+            Options:
+
+            - 'debruin': calculates PET using the De Bruin method
+            - 'makkink': calculates PET using the Makkink method
+
+        Returns
+        -------
+        None
+            Updates the model's `forcing` object in-place with PET data.
+
+        Raises
+        ------
+        ValueError
+            If `pet_method` is not one of 'debruin' or 'makkink'.
+
+        Notes
+        -----
+        The PET data is resampled to match the model timestep. The output DataFrame
+        includes both potential evapotranspiration (`E_pot_OW`) and reference grass
+        evapotranspiration (`Ref.grass`). Attributes of the DataFrame include
+        the data source (`pet_fn`) and the calculation method (`pet_method`).
+
+        Example
+        -------
+        >>> model.setup_pet_forcing(temp_pet_fn="era5_hourly", pet_method="debruin")
         """
         if temp_pet_fn is None:
             return
@@ -267,26 +339,64 @@ class UWBM(Model):
         source: str = "osm",
         landuse_mapping_fn: str | None = None,
     ):
-        """Generate landuse map for region based on provided base files.
+        """
+        Generate landuse map and associated tables for the model region.
 
-        Adds model layer:
-        * **lu_map**: polygon layer containing urban land use
-        * **lu_table**: table containing urban land use surface areas [m2]
+        This function creates a polygon landuse map and a landuse table based on the
+        provided base files and mapping. It also updates the configuration with landuse
+        area and fraction statistics.
 
-        Updates config:
-        * **soiltype**: soil type code according to UWB model documentation
-        * **croptype**: crop type code according to UWB model documentation
-        * **landuse_area**: surface area of the land use clasess [m2]
-        * **landuse_frac**: surface area fraction of the land use clasess [-]
-        * **tot_*_area**: total area of the UWB land use classes [m2]
-        * **tot_*_frac**: total area fraction of the UWB land use classes [-]
+        Adds model layers
+        ----------------
+        - **lu_map**: polygon layer containing urban land use
+        - **lu_table**: table containing urban land use surface areas [m2]
+
+        Updates configuration
+        --------------------
+        - **soiltype**: soil type code according to UWB model documentation
+        - **croptype**: crop type code according to UWB model documentation
+        - **landuse_area**: surface area of landuse classes [m2]
+        - **landuse_frac**: surface area fraction of landuse classes [-]
+        - **tot_*_area**: total area of the UWB land use classes [m2]
+        - **tot_*_frac**: total area fraction of the UWB land use classes [-]
 
         Parameters
         ----------
-        source: str, optional
+        source : str, optional
             Source of landuse base files. Current default is "osm".
-        landuse_mapping_fn: str, optional
-            Name of landuse mapping translation table. Default is "osm_mapping_default".
+        landuse_mapping_fn : str or None, optional
+            Name of the landuse mapping translation table. Default is None,
+            in which case the default translation table for the source is used.
+
+        Returns
+        -------
+        None
+            Updates the model's `geoms`, `landuse`, and `config` objects in-place.
+
+        Raises
+        ------
+        IOError
+            If the provided source is invalid, the mapping file is missing, or the
+            translation table is malformed.
+        ValueError
+            If the translation table columns are not of correct type or contain invalid classes.
+
+        Notes
+        -----
+        For the "osm" source, the following layers are extracted from the data catalog:
+        - osm_roads
+        - osm_railways
+        - osm_waterways
+        - osm_buildings
+        - osm_water
+
+        The landuse table is generated from the landuse map and provides area and
+        fraction for each reclassified landuse type. Total areas and fractions are
+        calculated for main categories.
+
+        Example
+        -------
+        >>> model.setup_landuse(source="osm")
         """
         logger.info("Preparing landuse map.")
 

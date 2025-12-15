@@ -5,47 +5,34 @@ Title: 'Installation guide'
 # Prerequisites
 For more information about the prerequisites for an installation of the HydroMT package
 and related dependencies, please visit the documentation of
-[HydroMT core](https://deltares.github.io/hydromt/latest/getting_started/installation.html#installation-guide)
-
-Compared to HydroMT, HydroMT plugin UWBM has additional dependencies, namely:
-
-- [tomli](https://github.com/hukkin/tomli)
-- list here other dependencies if any
-
-If you already have a python & conda installation but do not yet have mamba installed,
-we recommend installing it into your *base* environment using:
-
-```
-  $ conda install mamba -n base -c conda-forge
-```
+[HydroMT core](https://deltares.github.io/hydromt/latest/overview/installation.html#installation-guide)
 
 # Installation
-Explain how to install your plugin.
+
+# Using Hydromt UWBM
+
+To start using Hydromt UWBM, you only need to add this line to your projects dependencies: 
+`` "hydromt_uwbm @ git+https://github.com/Deltares-research/hydromt_uwbm" `` 
 
 # Developper installation
-To generate a usable mamba/conda environment you’ll need to have tomli installed. You can simply install this with pip (only required for python < 3.11):
+To generate a usable python development environment you’ll need to have uv installed. 
+You can simply install this from their [website](https://docs.astral.sh/uv/getting-started/installation/).
 
-```
-  $ pip install tomli
-```
+With uv installed, you can now add hydromt_uwbm to your environment in various ways:
 
-The first step is to create the environment.yml:
+1. CLI
 
-```
-  $ python make_env.py full -n hydromt_uwbm
-```
+- `cd <project_dir>`
+- `uv add "hydromt_uwbm @ git+https://github.com/Deltares-research/hydromt_uwbm"`
 
-When the script is finished, a file called environment.yml will be created which you can pass to mamba as demonstrated in the sections below. This will include all mandatory and optional dependencies of HydroMT plugin UWBM.
+2. pyproject.toml
 
-After the environment file has been created you can create an environment out of it by running:
+- add `"hydromt_uwbm @ git+https://github.com/Deltares-research/hydromt_uwbm"` to the `dependencies` section in a pyproject.toml file.
 
-```
-mamba env create -f environment.yml
-mamba activate hydromt_uwbm
-```
+3. enironment.yml
 
-Finally, create a developer installation of HydroMT:
+- add `- pip` to the dependencies list to ensure pip is installed
+- add ``- pip:`` to specify a list of packages to install from pypi
+- add ``"hydromt_uwbm @ git+https://github.com/Deltares-research/hydromt_uwbm"`` to the pip section.
 
-```
-pip install -e .
-```
+After adding the dependency, install your updated environment. (with uv: `uv sync --all-extras`)

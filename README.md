@@ -8,8 +8,9 @@ HydroMT (Hydro Model Tools) is an open-source Python package that facilitates th
 A base installation of the HydroMT package is required for the UWBM plugin. For more information about the prerequisites for an installation of the HydroMT package and related dependencies, please visit the documentation of [HydroMT core](https://deltares.github.io/hydromt/latest/).
 
 Follow these steps to install the plugin:
+
 1) In the command prompt, navigate to the package root directory (containing the pyproject.toml file).
-2) execute "pip install -e ."
+2) execute "uv sync --all-extras"
 
 ## Example usage
 Within the REACHOUT project by the European Commission, the CRCTool (with the Urban Water Balance Model as core model) was configured for Athens, Gdynia and Lillestrom as part of the Triple-A Toolbox.
