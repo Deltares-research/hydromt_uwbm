@@ -3,48 +3,39 @@ import logging
 from pathlib import Path
 
 import geopandas as gpd
-import hydromt
+import hydromt.model.processes.meteo as hmt_meteo
+import hydromt.model.processes.region as hmt_region
 import pandas as pd
-from hydromt.models import VectorModel
+from hydromt import Model
+from hydromt.model.components import GeomsComponent, TablesComponent
 
-from hydromt_uwbm.config import UWMBConfigWriter, read_inifile
+from hydromt_uwbm.components.config import UWBMConfigComponent
+from hydromt_uwbm.components.forcing import UWBMForcingComponent
 from hydromt_uwbm.workflows import landuse
 
 __all__ = ["UWBM"]
+__hydromt_eps__ = ["UWBM"]  # core entrypoints
 
 DATADIR = Path(__file__).parent / "data"
 
 logger = logging.getLogger(__name__)
 
 
-class UWBM(VectorModel):
-    """This is the uwbm class."""
+class UWBM(Model):
+    """HydroMT UWBM model class.
 
-    _NAME: str = "UWBM"
-    _CONF: str = "neighbourhood_params.ini"
-    _DATADIR: Path = DATADIR
-    _GEOMS = {"OSM": "OpenStreetMap"}
-    _FORCING = {
-        "time": "date",
-        "precip": "P_atm",
-        "PET": "E_pot_OW",
-    }
-    _FORCING_COLUMN_ORDER = ["P_atm", "Ref.grass", "E_pot_OW"]
-    # Name of default folders to create in the model directory
-    _FOLDERS: list[str] = ["input", "results", "model_run"]
+    This class provides a framework for setting up and running the Urban Water Balance Model (UWBM)
+    as part of the HydroMT plugin. It manages the model region, geometries, landuse, forcing data,
+    and configuration parameters.
+    """
 
-    _CATALOGS = [(_DATADIR / "parameters_data.yml").as_posix()]
-    # Cli args forwards the region and res arguments to the correct functions
-    # Uncomment, check and overwrite if needed
-    # _CLI_ARGS = {"region": <your func>, "res": <your func>}
+    name: str = "UWBM"
 
     def __init__(
         self,
         root: str | Path | None = None,
         mode: str = "w+",
-        config_fn: str | None = None,
         data_libs: list[str] | str | None = None,
-        logger: logging.Logger = logger,
     ):
         """Initialize the uwbm model class UWBM.
 
@@ -64,20 +55,41 @@ class UWBM(VectorModel):
         logger : logging.Logger, optional
             Logger to use, by default logger
         """
-        # Add model _CATALOGS to the data_libs
-        if self._CATALOGS:
-            if isinstance(data_libs, str):
-                data_libs = [data_libs]
-            if data_libs is None:
-                data_libs = []
-            data_libs = data_libs + self._CATALOGS
+        self.config = UWBMConfigComponent(
+            self,
+            filename="input/neighbourhood_params.ini",
+            default_template_filename=(
+                DATADIR / "UWBM/neighbourhood_params.ini"
+            ).as_posix(),
+        )
+        self.forcing = UWBMForcingComponent(self, filename="input/{name}.csv")
+        self.geoms = GeomsComponent(
+            self,
+            filename="geoms/{name}.geojson",
+            region_filename="geoms/region.geojson",
+        )
+        self.landuse = TablesComponent(self, filename="landuse/{name}.csv")
+
+        components = {
+            "config": self.config,
+            "forcing": self.forcing,
+            "geoms": self.geoms,
+            "landuse": self.landuse,
+        }
+
+        data_libs = data_libs or []
+        param_data = (DATADIR / "parameters_data.yml").as_posix()
+        if isinstance(data_libs, str):
+            data_libs = [data_libs]
+        if param_data not in data_libs:
+            data_libs.append(param_data)
 
         super().__init__(
             root=root,
             mode=mode,
-            config_fn=config_fn,
+            components=components,
             data_libs=data_libs,
-            logger=logger,
+            region_component="geoms",
         )
 
     # ==================================================================================
@@ -89,9 +101,51 @@ class UWBM(VectorModel):
         t_start: str | datetime.datetime,
         t_end: str | datetime.datetime,
         ts: int = 3600,
-        crs: str = "EPSG:3857",
+        crs: int = 3857,
     ):
-        """Setup project geometry from vector."""
+        """
+        Setup the project geometry and basic configuration.
+
+        This function initializes the model region from a vector, sets the
+        time range, timestep, coordinate reference system, and project name.
+
+        Parameters
+        ----------
+        region : dict
+            Dictionary describing the project region (e.g., geometry or boundary info).
+        name : str
+            Name of the project.
+        t_start : str or datetime.datetime
+            Start time of the simulation. If a string is provided, it will be
+            converted to a `datetime` object.
+        t_end : str or datetime.datetime
+            End time of the simulation. If a string is provided, it will be
+            converted to a `datetime` object.
+        ts : int, optional
+            Timestep in seconds (default is 3600). Must be either 3600 (hourly) or 86400 (daily).
+        crs : int, optional
+            Coordinate reference system for the project geometry (default is 3857).
+
+        Returns
+        -------
+        None
+            Updates the model's `geoms` and `config` objects in-place.
+
+        Raises
+        ------
+        ValueError
+            If `ts` is not 3600 or 86400.
+
+        Notes
+        -----
+        The project geometry is processed through `_parse_region` and stored
+        in the `geoms` object under the name "region". The configuration settings
+        such as start time, end time, timestep, and project name are stored in `config`.
+
+        Example
+        -------
+        >>> model.setup_project(region=my_region_dict, name="TestProject", t_start="2025-01-01", t_end="2025-12-31")
+        """
         if ts not in [3600, 86400]:
             raise ValueError("Timestep must be either 3600 (hours) or 86400 (days)")
 
@@ -100,26 +154,13 @@ class UWBM(VectorModel):
         if not isinstance(t_end, datetime.datetime):
             t_end = pd.to_datetime(t_end)
 
-        kind, region = hydromt.workflows.parse_region(
-            region,
-            data_catalog=self.data_catalog,
-            logger=self.logger,
-        )
+        gdf = self._parse_region(region, crs=crs)
+        self.geoms.set(gdf, name="region")
 
-        if kind in ["geom", "bbox"]:
-            self.setup_region(region=region, hydrography_fn=None, basin_index_fn=None)
-        else:
-            raise IOError(
-                "Provide project region as either GeoPandas DataFrame or BoundingBox."
-            )
-
-        region = self.geoms["region"].to_crs(crs)
-        self.set_geoms(region, name="region")
-
-        self.set_config("starttime", t_start)
-        self.set_config("endtime", t_end)
-        self.set_config("timestep", ts)
-        self.set_config("name", name)
+        self.config.set("starttime", t_start)
+        self.config.set("endtime", t_end)
+        self.config.set("timestep", ts)
+        self.config.set("name", name)
 
     def setup_precip_forcing(
         self,
@@ -135,25 +176,26 @@ class UWBM(VectorModel):
         Parameters
         ----------
         precip_fn : str, default era5_hourly
-            Precipitation data source.
-
-            * Required variable: ['precip']
+            Precipitation data source. Required variable: ['precip']
+        kwargs : additional keyword arguments
+            Additional keyword arguments passed to data catalog get_rasterdataset
+            method.
         """
         if precip_fn is None:
             return
-        starttime = self.get_config("starttime")
-        endtime = self.get_config("endtime")
-        freq = pd.to_timedelta(self.get_config("timestep"), unit="s")
+        starttime = self.config.get_value("starttime")
+        endtime = self.config.get_value("endtime")
+        freq = pd.to_timedelta(self.config.get_value("timestep"), unit="s")
         geom = self.region
 
         precip = self.data_catalog.get_rasterdataset(
             precip_fn,
             geom=geom,
             buffer=2,
-            time_tuple=(starttime, endtime),
+            time_range=(starttime, endtime),
             variables=["precip"],
         )
-        precip = hydromt.workflows.resample_time(precip, freq=freq, downsampling="sum")
+        precip = hmt_meteo.resample_time(precip, freq=freq, downsampling="sum")
         precip_out = precip.raster.zonal_stats(
             geom,
             stats=["mean"],
@@ -163,43 +205,67 @@ class UWBM(VectorModel):
         precip_out = precip_out.reset_index().set_index("time")
         precip_out = precip_out[["P_atm"]]
         precip_out.attrs.update({"precip_fn": precip_fn})
-
-        self.set_forcing(precip_out, name="precip")
+        precip_out = precip_out.round(3)
+        self.forcing.set(precip_out, name="precip")
 
     def setup_pet_forcing(
         self,
         temp_pet_fn: str = "era5_hourly",
         pet_method: str = "debruin",
     ) -> None:
-        """Generate area-averaged, tabular reference evapotranspiration forcing for geom
+        """
+        Generate area-averaged, tabular reference evapotranspiration (PET) forcing for the model region.
 
-        Adds model layer:
+        This function adds a model layer for reference evapotranspiration:
 
-        * **pet**: reference evapotranspiration [mm]
+        - **pet**: reference evapotranspiration [mm]
 
         Parameters
         ----------
         temp_pet_fn : str, optional
-            Name or path of data source with variables to calculate temperature
-            and reference evapotranspiration, see data/forcing_sources.yml.
-            By default 'era5_hourly'.
+            Name or path of the data source containing variables required to calculate
+            temperature and reference evapotranspiration (default is 'era5_hourly').
+            See `data/forcing_sources.yml` for available datasets.
 
-            * Required variable for temperature: ['temp']
+            Required variables:
 
-            * Required variables for De Bruin reference evapotranspiration: \
-                ['temp', 'press_msl', 'kin', 'kout']
+            - For temperature: ['temp']
+            - For De Bruin PET: ['temp', 'press_msl', 'kin', 'kout']
+            - For Makkink PET: ['temp', 'press_msl', 'kin']
 
-            * Required variables for Makkink reference evapotranspiration: \
-                ['temp', 'press_msl', 'kin']
         pet_method : str, optional
-            Method to calculate reference evapotranspiration. Options are
-            'debruin' (default) or 'makkink'.
+            Method used to calculate reference evapotranspiration (default is 'debruin').
+            Options:
+
+            - 'debruin': calculates PET using the De Bruin method
+            - 'makkink': calculates PET using the Makkink method
+
+        Returns
+        -------
+        None
+            Updates the model's `forcing` object in-place with PET data.
+
+        Raises
+        ------
+        ValueError
+            If `pet_method` is not one of 'debruin' or 'makkink'.
+
+        Notes
+        -----
+        The PET data is resampled to match the model timestep. The output DataFrame
+        includes both potential evapotranspiration (`E_pot_OW`) and reference grass
+        evapotranspiration (`Ref.grass`). Attributes of the DataFrame include
+        the data source (`pet_fn`) and the calculation method (`pet_method`).
+
+        Example
+        -------
+        >>> model.setup_pet_forcing(temp_pet_fn="era5_hourly", pet_method="debruin")
         """
         if temp_pet_fn is None:
             return
-        starttime = self.get_config("starttime")
-        endtime = self.get_config("endtime")
-        timestep = self.get_config("timestep")
+        starttime = self.config.get_value("starttime")
+        endtime = self.config.get_value("endtime")
+        timestep = self.config.get_value("timestep")
         freq = pd.to_timedelta(timestep, unit="s")
         geom = self.region
 
@@ -218,8 +284,8 @@ class UWBM(VectorModel):
         ds = self.data_catalog.get_rasterdataset(
             temp_pet_fn,
             geom=geom,
-            buffer=1,
-            time_tuple=(starttime, endtime),
+            buffer=2,
+            time_range=(starttime, endtime),
             variables=variables,
             single_var_as_array=False,
         )
@@ -231,7 +297,7 @@ class UWBM(VectorModel):
         ds_out = ds_out.rename_vars({f"{var}_mean": var for var in variables})
 
         if pet_method == "debruin":
-            pet_out = hydromt.workflows.pet_debruin(
+            pet_out = hmt_meteo.pet_debruin(
                 ds_out["temp"],
                 ds_out["press_msl"],
                 ds_out["kin"],
@@ -239,11 +305,11 @@ class UWBM(VectorModel):
                 timestep=timestep,
                 cp=1005.0,
                 beta=20.0,
-                Cs=110.0,
+                cs=110.0,
             )
 
         elif pet_method == "makkink":
-            pet_out = hydromt.workflows.pet_makkink(
+            pet_out = hmt_meteo.pet_makkink(
                 ds_out["temp"],
                 ds_out["press_msl"],
                 ds_out["kin"],
@@ -251,9 +317,7 @@ class UWBM(VectorModel):
                 cp=1005.0,
             )
 
-        pet_out = hydromt.workflows.resample_time(
-            pet_out, freq=freq, downsampling="mean"
-        )
+        pet_out = hmt_meteo.resample_time(pet_out, freq=freq, downsampling="mean")
 
         pet_df = pet_out.to_dataframe(name="E_pot_OW")
         pet_df = pet_df.reset_index().set_index("time")
@@ -267,41 +331,74 @@ class UWBM(VectorModel):
             "pet_method": pet_method,
         }
         pet_df.attrs.update(opt_attr)
-        self.set_forcing(pet_df, name="pet")
+        pet_df = pet_df.round(3)
+        self.forcing.set(pet_df, name="pet")
 
     def setup_landuse(
         self,
-        soiltype: int,
-        croptype: int,
         source: str = "osm",
         landuse_mapping_fn: str | None = None,
     ):
-        """Generate landuse map for region based on provided base files.
+        """
+        Generate landuse map and associated tables for the model region.
 
-        Adds model layer:
-        * **lu_map**: polygon layer containing urban land use
-        * **lu_table**: table containing urban land use surface areas [m2]
+        This function creates a polygon landuse map and a landuse table based on the
+        provided base files and mapping. It also updates the configuration with landuse
+        area and fraction statistics.
 
-        Updates config:
-        * **soiltype**: soil type code according to UWB model documentation
-        * **croptype**: crop type code according to UWB model documentation
-        * **landuse_area**: surface area of the land use clasess [m2]
-        * **landuse_frac**: surface area fraction of the land use clasess [-]
-        * **tot_*_area**: total area of the UWB land use classes [m2]
-        * **tot_*_frac**: total area fraction of the UWB land use classes [-]
+        Adds model layers
+        ----------------
+        - **lu_map**: polygon layer containing urban land use
+        - **lu_table**: table containing urban land use surface areas [m2]
+
+        Updates configuration
+        --------------------
+        - **soiltype**: soil type code according to UWB model documentation
+        - **croptype**: crop type code according to UWB model documentation
+        - **landuse_area**: surface area of landuse classes [m2]
+        - **landuse_frac**: surface area fraction of landuse classes [-]
+        - **tot_*_area**: total area of the UWB land use classes [m2]
+        - **tot_*_frac**: total area fraction of the UWB land use classes [-]
 
         Parameters
         ----------
-        soiltype: int
-            Soil type code according to UWB model documentation.
-        croptype: int
-            Crop type code according to UWB model documentation.
-        source: str, optional
+        source : str, optional
             Source of landuse base files. Current default is "osm".
-        landuse_mapping_fn: str, optional
-            Name of landuse mapping translation table. Default is "osm_mapping_default".
+        landuse_mapping_fn : str or None, optional
+            Name of the landuse mapping translation table. Default is None,
+            in which case the default translation table for the source is used.
+
+        Returns
+        -------
+        None
+            Updates the model's `geoms`, `landuse`, and `config` objects in-place.
+
+        Raises
+        ------
+        IOError
+            If the provided source is invalid, the mapping file is missing, or the
+            translation table is malformed.
+        ValueError
+            If the translation table columns are not of correct type or contain invalid classes.
+
+        Notes
+        -----
+        For the "osm" source, the following layers are extracted from the data catalog:
+        - osm_roads
+        - osm_railways
+        - osm_waterways
+        - osm_buildings
+        - osm_water
+
+        The landuse table is generated from the landuse map and provides area and
+        fraction for each reclassified landuse type. Total areas and fractions are
+        calculated for main categories.
+
+        Example
+        -------
+        >>> model.setup_landuse(source="osm")
         """
-        self.logger.info("Preparing landuse map.")
+        logger.info("Preparing landuse map.")
 
         sources = ["osm"]
         if source not in sources:
@@ -309,14 +406,16 @@ class UWBM(VectorModel):
 
         if source == "osm":
             if landuse_mapping_fn is None:
-                self.logger.info(
+                logger.info(
                     f"No landuse translation table provided. Using default translation "
                     f"table for source {source}."
                 )
                 fn_map = f"{source}_mapping_default"
             else:
                 fn_map = landuse_mapping_fn
-            if not Path(fn_map).exists() and fn_map not in self.data_catalog:
+            if not Path(fn_map).exists() and not self.data_catalog.contains_source(
+                fn_map
+            ):
                 raise ValueError(f"LULC mapping file not found: {fn_map}")
 
             table = self.data_catalog.get_dataframe(fn_map)
@@ -347,183 +446,71 @@ class UWBM(VectorModel):
             ]
 
             for layer in layers:
-                try:
-                    osm_layer = self.data_catalog.get_geodataframe(
-                        layer, geom=self.region, crs=self.crs
-                    )
-                    osm_layer = osm_layer.to_crs(self.crs)
-                    self.set_geoms(osm_layer, name=layer)
-                except Exception:
+                osm_layer = self.data_catalog.get_geodataframe(
+                    layer, geom=self.region, handle_nodata="warn"
+                )
+                if osm_layer is None or osm_layer.empty:
                     osm_layer = gpd.GeoDataFrame(
-                        columns=["geometry"], geometry="geometry", crs=self.crs
+                        columns=["geometry"], geometry="geometry", crs=self.region.crs
                     )
-                    osm_layer = osm_layer.to_crs(self.crs)
-                    self.set_geoms(osm_layer, name=layer)
+                self.geoms.set(osm_layer, name=layer)
 
             lu_map = landuse.landuse_from_osm(
                 region=self.region,
-                roads=self.geoms["osm_roads"],
-                railways=self.geoms["osm_railways"],
-                waterways=self.geoms["osm_waterways"],
-                buildings_area=self.geoms["osm_buildings"],
-                water_area=self.geoms["osm_water"],
+                roads=self.geoms.data["osm_roads"],
+                railways=self.geoms.data["osm_railways"],
+                waterways=self.geoms.data["osm_waterways"],
+                buildings_area=self.geoms.data["osm_buildings"],
+                water_area=self.geoms.data["osm_water"],
                 landuse_mapping=table,
             )
 
         # Add landuse map to geoms
-        self.set_geoms(lu_map, name="landuse_map")
+        self.geoms.set(lu_map, name="landuse_map")
         # Create landuse table from landuse map
-        lu_table = landuse.landuse_table(lu_map=self.geoms["landuse_map"])
+        lu_table = landuse.landuse_table(lu_map=self.geoms.data["landuse_map"])
         # Add landuse table to tables
-        self.set_tables(lu_table, name="landuse_table")
+        self.landuse.set(lu_table, name="landuse_table")
         # Add landuse categories to config
-        df_landuse = self.tables["landuse_table"]
+        df_landuse = self.landuse.data["landuse_table"]
 
         for reclass in df_landuse["reclass"]:
-            self.set_config(
-                "landuse_area",
-                f"{reclass}",
+            self.config.set(
+                f"landuse_area.{reclass}",
                 float(df_landuse.loc[df_landuse["reclass"] == reclass, "area"].iloc[0]),
             )
-            self.set_config(
-                "landuse_frac",
-                f"{reclass}",
+            self.config.set(
+                f"landuse_frac.{reclass}",
                 float(df_landuse.loc[df_landuse["reclass"] == reclass, "frac"].iloc[0]),
             )
 
-        self.set_config("soiltype", soiltype)
-        self.set_config("croptype", croptype)
-
         keys = ["op", "ow", "up", "pr", "cp"]
         for key in keys:
-            self.set_config(f"tot_{key}_area", self.get_config("landuse_area", key))
-            self.set_config(f"{key}_frac", self.get_config("landuse_frac", key))
+            self.config.set(
+                f"tot_{key}_area", self.config.get_value(f"landuse_area.{key}")
+            )
+            self.config.set(f"{key}_frac", self.config.get_value(f"landuse_frac.{key}"))
 
-        self.set_config("tot_area", self.get_config("landuse_area", "tot_area"))
+        self.config.set("tot_area", self.config.get_value("landuse_area.tot_area"))
 
     # ==================================================================================
-    # I/O METHODS
-    def read(self, components: list[str] | None = None):
-        """Generic read function for all model workflows."""
-        if components is None:
-            components = ["config", "forcing", "tables", "geoms"]
+    # IO METHODS
+    def write(self, components: list[str] | None = None) -> None:
+        for p in ["input", "results", "model_run"]:
+            (self.root.path / p).mkdir(parents=True, exist_ok=True)
+        return super().write(components)
 
-        if "config" in components:
-            self.read_config()
-        if "forcing" in components:
-            self.read_forcing()
-        if "tables" in components:
-            self.read_tables()
-        if "geoms" in components:
-            self.read_geoms()
-
-    def write(self, components: list[str] | None = None):
-        """Generic write function for all model workflows."""
-        if components is None:
-            components = ["config", "forcing", "tables", "geoms"]
-        if "config" in components:
-            self.write_config()
-        if "forcing" in components:
-            self.write_forcing()
-        if "tables" in components:
-            self.write_tables()
-        if "geoms" in components:
-            self.write_geoms()
-
-    def read_forcing(self, fn: str = "input/*.csv", **kwargs):
-        """Read forcing from model folder in model ready format (.csv)."""
-        self._assert_read_mode()
-        path = Path(self.root, fn)
-        files = path.parent.glob(path.name)
-
-        for path in files:
-            df = pd.read_csv(path, sep=",", parse_dates=["date"], **kwargs)
-            df = df.set_index("date")
-
-            for col in df.columns:
-                self.set_forcing(df[[col]], name=col)
-
-    def write_forcing(self, fn: str | None = None, decimals: int = 2, **kwargs):
-        """Write forcing at ``fn`` in model ready format (.csv).
-
-        Parameters
-        ----------
-        fn: str, Path, optional
-            Path to save output csv file. Default folder is output/forcing.
-        decimals: int, optional
-            Round the ouput data to the given number of decimals.
-        """
-        if len(self.forcing) > 0:
-            self._assert_write_mode()
-            self.logger.info("Writing forcing file")
-
-            start = self.get_config("starttime")
-            end = self.get_config("endtime")
-            ts = datetime.timedelta(seconds=self.get_config("timestep"))
-            time_index = pd.date_range(start=start, end=end, freq=ts, name="date")
-            df = pd.DataFrame(data=self.forcing, index=time_index)
-            df.index.name = "date"
-
-            if not all(col in df.columns for col in self._FORCING_COLUMN_ORDER):
-                raise ValueError(
-                    f"Not all required forcing columns found in data.\n"
-                    f"Required columns are {self._FORCING_COLUMN_ORDER}\n"
-                    f"Found columns are {df.columns.tolist()}"
-                )
-            df = df.loc[:, self._FORCING_COLUMN_ORDER]
-
-            if decimals is not None:
-                df = df.round(decimals)
-
-            if fn is None:
-                years = int((end - start).days / 365.25)
-                h = int(ts.total_seconds() / 3600)
-                fn = f"input/Forcing_{self.config['name']}_{years}y_{h}h.csv"
-
-            path = Path(self.root, fn)
-            path.parent.mkdir(parents=True, exist_ok=True)
-            df.to_csv(path, sep=",", date_format="%d-%m-%Y %H:%M", **kwargs)
-
-    def read_geoms(self, fn: str = "geoms/*.geojson", **kwargs):
-        return super().read_geoms(fn, **kwargs)
-
-    def write_geoms(
-        self,
-        fn: str = "geoms/{name}.geojson",
-        to_wgs84: bool = False,
-        **kwargs,
-    ) -> None:
-        super().write_geoms(fn=fn, to_wgs84=to_wgs84, **kwargs)
-
-    def read_tables(self, fn: str = "landuse/*.csv", **kwargs):
-        return super().read_tables(fn, **kwargs)
-
-    def write_tables(self, fn: str = "landuse/{name}.csv", **kwargs):
-        super().write_tables(fn=fn, **kwargs)
-
-    def read_config(self, config_fn: str | None = None):
-        if config_fn is not None:
-            path = Path(self.root, config_fn)
-        elif not self._read:  # write-only mode > read default config.
-            path = Path(self._DATADIR, self._NAME, self._CONF)
+    # --------------------------------------------------------------------------
+    def _parse_region(self, region: dict, crs: int) -> gpd.GeoDataFrame:
+        crs = region.get("crs") or crs
+        if region.get("bbox") is not None:
+            gdf = hmt_region.parse_region_bbox(region, crs=crs)
+        elif region.get("geom") is not None:
+            gdf = hmt_region.parse_region_geom(region, crs=crs)
         else:
-            path = Path(self.root, "input", self._config_fn)
-        return super().read_config(path.as_posix())
+            raise IOError(
+                "Provide region as either 'geom' with a gpd.GeoDataFrame or "
+                "'bbox' with a list of coordinates."
+            )
 
-    def write_config(
-        self, config_name: str | None = None, config_root: str | None = None
-    ):
-        config_root = Path(self.root, "input").as_posix()
-        return super().write_config(config_name, config_root=config_root)
-
-    def _configread(self, fn: str) -> dict:
-        """Read TOML configuration file.
-
-        This function serves as alternative to the default read_config function
-        to support ini files without headers.
-        """
-        return read_inifile(fn)
-
-    def _configwrite(self, fn: str):
-        """Write TOML configuration file."""
-        UWMBConfigWriter.from_dict(self.config).write(fn)
+        return gdf

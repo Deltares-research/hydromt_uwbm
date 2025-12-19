@@ -5,15 +5,15 @@ on:
   push:
     branches: [master]
     paths:
-      - 'hydromt_uwbm/*'
-      - '.github/workflows/tests.yml'
-      - 'tests/*'
+      - hydromt_uwbm/**
+      - .github/workflows/tests.yml
+      - tests/**
   pull_request:
     branches: [master]
     paths:
-      - 'hydromt_uwbm/*'
-      - '.github/workflows/tests.yml'
-      - 'tests/*'
+      - hydromt_uwbm/**
+      - .github/workflows/tests.yml
+      - tests/**
 jobs:
   Test-matrix:
     name: ${{ matrix.os }} - py${{ matrix.python-version }}
@@ -26,7 +26,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        python-version: ['3.10', '3.11', '3.12', '3.13']
+        python-version: ['3.11', '3.12', '3.13']
     concurrency:
       group: ${{ github.workflow }}-${{ matrix.os }}-${{ matrix.python-version }}-${{ github.ref }}
       cancel-in-progress: true
@@ -38,11 +38,4 @@ jobs:
       - name: Install dependencies
         run: uv sync --all-extras
       - name: Run tests
-        run: uv run pytest --verbose --cov=hydromt_uwbm --cov-report xml
-      - name: Coverage Report
-        uses: codecov/codecov-action@v5
-        with:
-          files: ./coverage.xml
-          flags: unittests
-          name: codecov-umbrella
-          fail_ci_if_error: true
+        run: uv run pytest --verbose --cov=hydromt_uwbm --cov-report xml --cov-branch

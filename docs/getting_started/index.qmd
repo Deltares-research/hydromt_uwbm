@@ -3,4 +3,3 @@ Title: 'Getting started'
 ---
 
 * [Installation guide](installation.qmd)
-* [User guide](../user_guide/index.qmd)

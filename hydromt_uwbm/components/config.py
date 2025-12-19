@@ -1,23 +1,52 @@
-import sys
+import logging
+import tomllib
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Literal
 
-if sys.version_info < (3, 11):
-    from tomli import load as read_toml
-else:
-    from tomllib import load as read_toml
-
+from hydromt import hydromt_step
+from hydromt._utils.path import _make_config_paths_relative
+from hydromt.model.components.config import ConfigComponent
 from pydantic import BaseModel, Field, ValidationError
 from pydantic_core import PydanticUndefined
 
-__all__ = ["UWMBConfig", "UWMBConfigWriter", "read_inifile"]
+__all__ = ["UWBMConfigComponent", "UwbmConfig"]
+
+logger = logging.getLogger(__name__)
 
 
-class UWMBConfig(BaseModel):
+class UWBMConfigComponent(ConfigComponent):
+    @hydromt_step
+    def write(self, file_path: str | None = None) -> None:
+        """Write configuration data to files."""
+        self.root._assert_write_mode()
+
+        if not self.data:
+            logger.info(
+                f"{self.model.name}.{self.name_in_model}: No config data found, skip writing."
+            )
+            return
+
+        path = file_path or self._filename
+        path = self.root.path / path
+        path.parent.mkdir(parents=True, exist_ok=True)
+        logger.info(
+            f"{self.model.name}.{self.name_in_model}: Writing model config to {path}."
+        )
+
+        write_data = _make_config_paths_relative(self.data, self.root.path)
+
+        config = UwbmConfig.create(write_data)
+        path = Path(path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with open(path, "w") as f:
+            f.write(config.to_ini())
+
+
+class UwbmConfig(BaseModel):
     # run
     title: str = Field(
-        default="neighbourhood config",
+        default="Neighbourhood config",
         description="Title of the configuration",
     )
     name: str = Field(
@@ -36,18 +65,18 @@ class UWMBConfig(BaseModel):
         default=...,
         description="Timestep length in seconds [3600: hourly, 86400: daily]",
     )
-
-    # landuse
-    soiltype: int | None = Field(
-        default=None,
+    soiltype: int = Field(
+        default=7,
         description="Soil type",
         ge=0,
     )
-    croptype: int | None = Field(
-        default=None,
+    croptype: int = Field(
+        default=1,
         description="Crop type",
         ge=0,
     )
+
+    # landuse
     tot_area: float | None = Field(
         default=None,
         description="Total area of the study area [m2]",
@@ -67,7 +96,7 @@ class UWMBConfig(BaseModel):
     )
 
     # paved roof
-    tot_pr_area: int | None = Field(
+    tot_pr_area: float | None = Field(
         default=None,
         description="Total area of paved roof [m2]",
         ge=0,
@@ -102,7 +131,7 @@ class UWMBConfig(BaseModel):
     )
 
     # closed paved
-    tot_cp_area: int | None = Field(
+    tot_cp_area: float | None = Field(
         default=None,
         description="Total area of closed paved in square meters",
         ge=0,
@@ -131,7 +160,7 @@ class UWMBConfig(BaseModel):
     )
 
     # open paved
-    tot_op_area: int | None = Field(
+    tot_op_area: float | None = Field(
         default=None,
         description="Total area of open paved [m2]",
         ge=0,
@@ -165,7 +194,7 @@ class UWMBConfig(BaseModel):
     )
 
     # unpaved
-    tot_up_area: int | None = Field(
+    tot_up_area: float | None = Field(
         default=None,
         description="Total area of unpaved [m2]",
         ge=0,
@@ -198,11 +227,9 @@ class UWMBConfig(BaseModel):
         description="Drainage resistance from groundwater to open water (w) [d]",
         ge=0,
     )
-    seepage_define: int = Field(
+    seepage_define: Literal[0, 1] = Field(
         default=0,
         description="Seepage to deep groundwater defined as either constant downward flux or dynamic computed flux determined by head difference and resistance [0=flux; 1=level]",
-        ge=0,
-        le=1,
     )
     down_seepage_flux: float = Field(
         default=0.0,
@@ -219,12 +246,12 @@ class UWMBConfig(BaseModel):
         ge=0,
     )
     gwl_t0: float = Field(
-        default=4.0,
+        default=1.5,
         description='Initial groudwater level (at t=0), usually taken as target water level, relating to "storcap_ow" [m-SL]',
     )
 
     # open water
-    tot_ow_area: int | None = Field(
+    tot_ow_area: float | None = Field(
         default=None, description="Total area of open water [m2]", ge=0
     )
     ow_frac: float | None = Field(
@@ -234,7 +261,7 @@ class UWMBConfig(BaseModel):
         default=0.0, description="Part of open water above Groundwater [-]", ge=0, le=1
     )
     storcap_ow: float = Field(
-        default=4000.0,
+        default=1500.0,
         description="Storage capacity of open water (divided by 1000 is target open water level) [mm]",
         ge=0,
     )
@@ -257,7 +284,7 @@ class UWMBConfig(BaseModel):
         ge=0,
     )
     storcap_mss: float = Field(
-        default=9.0,
+        default=2.0,
         description="Storage capacity of mixed sewer system (MSS) [mm]",
         ge=0,
     )
@@ -413,7 +440,7 @@ class UWMBConfig(BaseModel):
                 if value is None:
                     continue
                 serialized_fields.add(name)
-                desc = UWMBConfig.model_fields[name].description
+                desc = UwbmConfig.model_fields[name].description
                 assignment = f"{name} = {fmt(value)}"
                 if isinstance(value, (int, float, str, bool, datetime)):
                     simple_entries.append((assignment, desc))
@@ -441,18 +468,18 @@ class UWMBConfig(BaseModel):
 
         fields_with_defaults = {
             name
-            for name, field in UWMBConfig.model_fields.items()
+            for name, field in UwbmConfig.model_fields.items()
             if field.default is not PydanticUndefined and field.default is not None
         }
         required_fields = {
             name
-            for name, field in UWMBConfig.model_fields.items()
+            for name, field in UwbmConfig.model_fields.items()
             if field.default is PydanticUndefined
         }
         expected_fields = fields_with_defaults | required_fields
         missing = expected_fields - serialized_fields
         if missing:
-            # If you want to add an optional / required var to the config, please add them to the correct section in ``UWMBConfig._SECTIONS``.
+            # If you want to add an optional / required var to the config, please add them to the correct section in ``UwbmConfig._SECTIONS``.
             raise ValueError(
                 f"Some required fields were not serialized: {missing}.\nPlease set these using functions ``UWMB.setup_x`` and/or ``UWMB.set_config()``."
             )
@@ -460,23 +487,23 @@ class UWMBConfig(BaseModel):
         return "\n".join(lines)
 
     @staticmethod
-    def from_file(path: Path) -> "UWMBConfig":
+    def from_file(path: Path) -> "UwbmConfig":
         with open(path, "rb") as f:
-            cfg = read_toml(f)
-        return UWMBConfig.create(cfg)
+            cfg = tomllib.load(f)
+        return UwbmConfig.create(cfg)
 
     @staticmethod
-    def create(data: dict) -> "UWMBConfig":
+    def create(data: dict) -> "UwbmConfig":
         """
-        Validate a config dict against UWMBConfig and return nicely formatted messages.
+        Validate a config dict against UwbmConfig and return nicely formatted messages.
         Returns:
             invalid_params: list of "param_name: value, error message, param_description"
             unknown_params: list of unknown keys
         """
         try:
-            return UWMBConfig(**data)
+            return UwbmConfig(**data)
         except ValidationError as e:
-            all_keys = set(UWMBConfig.model_fields.keys())
+            all_keys = set(UwbmConfig.model_fields.keys())
             unknown_keys = [k for k in data.keys() if k not in all_keys]
             invalid_params: list[str] = []
 
@@ -488,8 +515,8 @@ class UWMBConfig(BaseModel):
                 key = loc[0]
                 # Grab description if available
                 desc = (
-                    UWMBConfig.model_fields[key].description
-                    if key in UWMBConfig.model_fields
+                    UwbmConfig.model_fields[key].description
+                    if key in UwbmConfig.model_fields
                     else None
                 )
 
@@ -515,31 +542,3 @@ class UWMBConfig(BaseModel):
             else:
                 # re-raise original error if no specific info could be extracted
                 raise
-
-
-class UWMBConfigWriter:
-    def __init__(self, config: UWMBConfig):
-        self.config = config
-
-    @staticmethod
-    def from_dict(data: dict[str, Any]) -> "UWMBConfigWriter":
-        config = UWMBConfig.create(data)
-        return UWMBConfigWriter(config)
-
-    @staticmethod
-    def from_file(path: Path) -> "UWMBConfigWriter":
-        cfg = UWMBConfig.from_file(path)
-        return UWMBConfigWriter(cfg)
-
-    def serialize(self) -> str:
-        return self.config.to_ini()
-
-    def write(self, path: Path | str) -> None:
-        with open(path, "w") as f:
-            f.write(self.serialize())
-
-
-def read_inifile(path: Path) -> dict[str, Any]:
-    with open(path, "rb") as f:
-        cfg = read_toml(f)
-    return cfg

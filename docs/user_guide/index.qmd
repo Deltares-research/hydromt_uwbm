@@ -14,4 +14,4 @@ This plugin assists the uwbm modeller in:
 
 One uwbm Model classes is currently available:
 
-- ``uwbm`` (VectorModel): class for the uwbm model.
+- ``uwbm`` (Model): class for the uwbm model.

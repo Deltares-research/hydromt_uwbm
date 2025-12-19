@@ -44,39 +44,42 @@ def landuse_from_osm(
         Landuse geometry.
     """
     # Create unpaved base layer from region
-    da_unpaved = region
-    da_unpaved = da_unpaved.assign(reclass="unpaved")
-    # Combine all polylines into 1 dataset for translation
-    ds_joined = pd.concat([roads, railways, waterways])
-    # Merge dataframe with translation table on fclass
+    da_unpaved = region.copy().assign(reclass="unpaved")
+
+    # Merge all lines
+    ds_joined: gpd.GeoDataFrame = pd.concat([roads, railways, waterways])
     ds_joined = ds_joined.merge(landuse_mapping, on="fclass", how="left")
-    # Assign land use columns
+
+    # Buildings and water polygons
     da_paved_roof = buildings_area.assign(reclass="paved_roof")
     da_water_area = water_area.assign(reclass="water")
-    # Create buffers along lines
-    if any(ds_joined["reclass"] == "closed_paved"):
-        da_closed_paved = _linestring_buffer(ds_joined, "closed_paved")
-    else:
-        da_closed_paved = gpd.GeoDataFrame(columns=["geometry"], geometry="geometry")
-    if any(ds_joined["reclass"] == "open_paved"):
-        da_open_paved = _linestring_buffer(ds_joined, "open_paved")
-    else:
-        da_open_paved = gpd.GeoDataFrame(columns=["geometry"], geometry="geometry")
-    if any(ds_joined["reclass"] == "water"):
-        da_water = _linestring_buffer(ds_joined, "water")
-    else:
-        da_water = gpd.GeoDataFrame(columns=["geometry"], geometry="geometry")
-    # Join water areas and waterways
-    da_water = pd.concat([da_water_area, da_water])
-    # Create combined land use layers
-    lu_map = _combine_layers(da_unpaved, da_water)
-    lu_map = _combine_layers(lu_map, da_open_paved)
-    lu_map = _combine_layers(lu_map, da_closed_paved)
-    lu_map = _combine_layers(lu_map, da_paved_roof)
-    # Dissolve by land use category
-    lu_map = lu_map.dissolve(by="reclass", aggfunc="sum")
+
+    # Buffer lines by width
+    da_closed_paved = _linestring_buffer(ds_joined, "closed_paved")
+    da_open_paved = _linestring_buffer(ds_joined, "open_paved")
+    da_water_lines = _linestring_buffer(ds_joined, "water")
+
+    # Add water lines to water areas
+    da_water: gpd.GeoDataFrame = pd.concat([da_water_area, da_water_lines])
+
+    # Combine all layers
+    layers: list[gpd.GeoDataFrame] = [
+        da_unpaved,
+        da_water,
+        da_open_paved,
+        da_closed_paved,
+        da_paved_roof,
+    ]
+    lu_map = layers[0]
+    for layer in layers[1:]:
+        lu_map = _combine_layers(lu_map, layer)
+
     # Clip by project area to create neat land use map
     lu_map = gpd.clip(lu_map, region, keep_geom_type=True)
+
+    # Dissolve by land use category
+    lu_map = lu_map.dissolve(by="reclass", aggfunc="sum").reset_index()
+
     return lu_map
 
 
@@ -93,36 +96,36 @@ def landuse_table(lu_map: gpd.GeoDataFrame) -> pd.DataFrame:
     landuse_table: pandas.DataFrame
         Table with landuse areas and percentages of total.
     """
-    # Generate dataframe with areas
-    lu_table = lu_map.area.to_frame().round(0)
-    lu_table = lu_table.rename(columns={0: "area"}).reset_index()
-    tot_area = float(lu_table["area"].sum())
+    # Keep only polygonal geometries (_linestring_buffer ensures this)
+    lu_map = lu_map[lu_map.geometry.type.isin(["Polygon", "MultiPolygon"])].copy()
 
-    # Increase water size
-    water = lu_map.loc[["water"]]
-    if water.empty or float(water.geometry.area.sum()) < 0.01 * tot_area:
-        # Add water if not present
+    # Compute areas
+    lu_map["area"] = lu_map.geometry.area
+    lu_table = lu_map[["reclass", "area"]].copy()
+    tot_area = float(lu_table["area"].sum().round(0))
+
+    # Ensure water has at least 1% of total area
+    water = lu_table[lu_table["reclass"] == "water"]
+    if water.empty or water["area"].sum() < 0.01 * tot_area:
         if water.empty:
-            lu_table.loc[len(lu_table)] = ["water", 0]
-
+            # Add water row to the end if not present
+            lu_table.loc[len(lu_table)] = {"reclass": "water", "area": 0}
         area_tot_new = tot_area / 0.99
-
-        lu_table.loc[lu_table["reclass"] == "water", "area"] = (
-            lu_table.loc[lu_table["reclass"] == "water", "area"] + area_tot_new * 0.01
-        )
+        lu_table.loc[lu_table["reclass"] == "water", "area"] += area_tot_new * 0.01
         lu_table["frac"] = (lu_table["area"] / area_tot_new).round(3)
     else:
         lu_table["frac"] = (lu_table["area"] / tot_area).round(3)
+
+    # Add total area row
     lu_table = pd.concat(
         [
             lu_table,
-            pd.DataFrame(
-                {"reclass": "tot_area", "area": tot_area, "frac": 1},
-                index=[len(lu_table)],
-            ),
-        ]
+            pd.DataFrame([{"reclass": "tot_area", "area": tot_area, "frac": 1}]),
+        ],
+        ignore_index=True,
     )
-    # Rename index values to model conventions
+
+    # Rename to model conventions
     lu_table["reclass"] = lu_table["reclass"].replace(
         {
             "open_paved": "op",
@@ -132,10 +135,16 @@ def landuse_table(lu_map: gpd.GeoDataFrame) -> pd.DataFrame:
             "closed_paved": "cp",
         }
     )
+
+    # Group by in case of multiple geometries per land use category
+    lu_table = (
+        lu_table.groupby("reclass", as_index=False)[["area", "frac"]].sum().round(3)
+    )
+
     return lu_table
 
 
-def _linestring_buffer(input_ds, reclass):
+def _linestring_buffer(input_ds: gpd.GeoDataFrame, reclass: str) -> gpd.GeoDataFrame:
     """Generating buffers with varying sized depending on land use category.
 
     Parameters
@@ -159,7 +168,9 @@ def _linestring_buffer(input_ds, reclass):
     return output_ds
 
 
-def _combine_layers(ds_base, ds_add):
+def _combine_layers(
+    ds_base: gpd.GeoDataFrame, ds_add: gpd.GeoDataFrame
+) -> gpd.GeoDataFrame:
     """Combining two GeoDataFrame layers into a single GeoDataFrame layer.
 
     Parameters
