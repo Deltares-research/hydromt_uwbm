@@ -436,14 +436,17 @@ class UWBM(Model):
                 )
             if table["width_t"].dtypes not in ["float64", "int", "int64"]:
                 raise IOError("Provide total width (width_t) values as float or int'")
-
-            layers = [
-                "osm_roads",
-                "osm_railways",
-                "osm_waterways",
-                "osm_buildings",
-                "osm_water",
-            ]
+            
+            empty_gdf = gpd.GeoDataFrame(
+                columns=["geometry"], geometry="geometry", crs=self.region.crs
+            )
+            layers: dict[str, gpd.GeoDataFrame] = {
+                "osm_roads": empty_gdf.copy(),
+                "osm_railways": empty_gdf.copy(),
+                "osm_waterways": empty_gdf.copy(),
+                "osm_buildings": empty_gdf.copy(),
+                "osm_water": empty_gdf.copy(),
+            }
 
             for layer in layers:
                 osm_layer = self.data_catalog.get_geodataframe(
@@ -453,27 +456,29 @@ class UWBM(Model):
                     osm_layer = gpd.GeoDataFrame(
                         columns=["geometry"], geometry="geometry", crs=self.region.crs
                     )
-                self.geoms.set(osm_layer, name=layer)
+                layers[layer] = osm_layer
 
-            lu_map = landuse.landuse_from_osm(
+            landuse_layers = landuse.landuse_from_osm(
                 region=self.region,
-                roads=self.geoms.data["osm_roads"],
-                railways=self.geoms.data["osm_railways"],
-                waterways=self.geoms.data["osm_waterways"],
-                buildings_area=self.geoms.data["osm_buildings"],
-                water_area=self.geoms.data["osm_water"],
+                roads=layers["osm_roads"],
+                railways=layers["osm_railways"],
+                waterways=layers["osm_waterways"],
+                buildings_area=layers["osm_buildings"],
+                water_area=layers["osm_water"],
                 landuse_mapping=table,
             )
-
-        # Add landuse map to geoms
-        self.geoms.set(lu_map, name="landuse_map")
-        # Create landuse table from landuse map
-        lu_table = landuse.landuse_table(lu_map=self.geoms.data["landuse_map"])
+        else:
+            raise NotImplementedError(f"Source {source} not yet implemented.")
+            
+        # Add geoms to model
+        for name, gdf in landuse_layers.items():
+            self.geoms.set(gdf, name=name)
+        
         # Add landuse table to tables
-        self.landuse.set(lu_table, name="landuse_table")
+        df_landuse = landuse.landuse_table(lu_map=landuse_layers["landuse_map"])
+        self.landuse.set(df_landuse, name="landuse_table")
+        
         # Add landuse categories to config
-        df_landuse = self.landuse.data["landuse_table"]
-
         for reclass in df_landuse["reclass"]:
             self.config.set(
                 f"landuse_area.{reclass}",

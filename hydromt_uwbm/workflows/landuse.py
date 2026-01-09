@@ -18,7 +18,7 @@ def landuse_from_osm(
     buildings_area: gpd.GeoDataFrame,
     water_area: gpd.GeoDataFrame,
     landuse_mapping: pd.DataFrame,
-):
+) -> dict[str, gpd.GeoDataFrame]:
     """Preparing landuse map from OpenStreetMap.
 
     Parameters
@@ -40,47 +40,97 @@ def landuse_from_osm(
 
     Returns
     -------
-    landuse_map: GeoJSON
-        Landuse geometry.
+    landuse_geometries: dict[str, geopandas.GeoDataFrame]
+        Dictionary with landuse geometries and landuse table.
     """
-    # Create unpaved base layer from region
-    da_unpaved = region.copy().assign(reclass="unpaved")
+    # Clean and explode region
+    region = region.copy()
+    region["geometry"] = region.geometry.buffer(0)
+    region = region.explode(index_parts=False, ignore_index=True)
+    region_geom = region.union_all()
+    region_gdf = gpd.GeoDataFrame(geometry=[region_geom], crs=region.crs)
+    region_gdf = region_gdf.explode(index_parts=False, ignore_index=True)
 
-    # Merge all lines
-    ds_joined: gpd.GeoDataFrame = pd.concat([roads, railways, waterways])
-    ds_joined = ds_joined.merge(landuse_mapping, on="fclass", how="left")
+    # Base layer: unpaved
+    da_unpaved = region_gdf.assign(reclass="unpaved")
 
-    # Buildings and water polygons
-    da_paved_roof = buildings_area.assign(reclass="paved_roof")
-    da_water_area = water_area.assign(reclass="water")
+    # Merge line layers and map landuse
+    lines = pd.concat([roads, railways, waterways], ignore_index=True)
+    lines = lines.merge(landuse_mapping, on="fclass", how="left")
 
-    # Buffer lines by width
-    da_closed_paved = _linestring_buffer(ds_joined, "closed_paved")
-    da_open_paved = _linestring_buffer(ds_joined, "open_paved")
-    da_water_lines = _linestring_buffer(ds_joined, "water")
+    # Buffer lines by type
+    da_closed_paved = _linestring_buffer(lines, "closed_paved")
+    da_open_paved = _linestring_buffer(lines, "open_paved")
+    da_water_lines = _linestring_buffer(lines, "water")
 
-    # Add water lines to water areas
-    da_water: gpd.GeoDataFrame = pd.concat([da_water_area, da_water_lines])
+    # Explode multipolygons before clipping
+    for layer in [da_closed_paved, da_open_paved, da_water_lines]:
+        if not layer.empty:
+            layer["geometry"] = layer.geometry.buffer(0)
+            layer = layer.explode(index_parts=False, ignore_index=True)
 
-    # Combine all layers
-    layers: list[gpd.GeoDataFrame] = [
-        da_unpaved,
-        da_water,
-        da_open_paved,
-        da_closed_paved,
-        da_paved_roof,
-    ]
-    lu_map = layers[0]
-    for layer in layers[1:]:
-        lu_map = _combine_layers(lu_map, layer)
+    # Clip all line buffers to region
+    if not da_closed_paved.empty:
+        da_closed_paved = gpd.overlay(
+            da_closed_paved, region_gdf, how="intersection", keep_geom_type=True
+        )
+    if not da_open_paved.empty:
+        da_open_paved = gpd.overlay(
+            da_open_paved, region_gdf, how="intersection", keep_geom_type=True
+        )
+    if not da_water_lines.empty:
+        da_water_lines = gpd.overlay(
+            da_water_lines, region_gdf, how="intersection", keep_geom_type=True
+        )
 
-    # Clip by project area to create neat land use map
-    lu_map = gpd.clip(lu_map, region, keep_geom_type=True)
+    # Clip buildings to region
+    if not buildings_area.empty:
+        buildings = buildings_area.copy()
+        buildings["geometry"] = buildings.geometry.buffer(0)
+        buildings = buildings.explode(index_parts=False, ignore_index=True)
+        da_paved_roof = gpd.overlay(
+            buildings, region_gdf, how="intersection", keep_geom_type=True
+        ).assign(reclass="paved_roof")
+    else:
+        da_paved_roof = gpd.GeoDataFrame(
+            columns=["geometry", "reclass"], crs=region.crs
+        )
 
-    # Dissolve by land use category
+    # Clip water areas to region
+    if not water_area.empty:
+        water = water_area.copy()
+        water["geometry"] = water.geometry.buffer(0)
+        water = water.explode(index_parts=False, ignore_index=True)
+        da_water_area = gpd.overlay(
+            water, region_gdf, how="intersection", keep_geom_type=True
+        ).assign(reclass="water")
+    else:
+        da_water_area = gpd.GeoDataFrame(
+            columns=["geometry", "reclass"], crs=region.crs
+        )
+
+    # Combine water layers
+    da_water = pd.concat([da_water_area, da_water_lines], ignore_index=True)
+
+    # Combine all layers in correct overlay order
+    layers = {
+        "da_unpaved": da_unpaved,
+        "da_water": da_water,
+        "da_open_paved": da_open_paved,
+        "da_closed_paved": da_closed_paved,
+        "da_paved_roof": da_paved_roof,
+    }
+
+    lu_map = layers["da_unpaved"]
+    for key in ["da_water", "da_open_paved", "da_closed_paved", "da_paved_roof"]:
+        lu_map = _combine_layers(lu_map, layers[key])
+
+    # Final cleanup and dissolve by landuse
+    lu_map["geometry"] = lu_map.geometry.buffer(0)
+    lu_map = lu_map.explode(index_parts=False, ignore_index=True)
     lu_map = lu_map.dissolve(by="reclass", aggfunc="sum").reset_index()
-
-    return lu_map
+    layers["landuse_map"] = lu_map
+    return layers
 
 
 def landuse_table(lu_map: gpd.GeoDataFrame) -> pd.DataFrame:
@@ -159,37 +209,34 @@ def _linestring_buffer(input_ds: gpd.GeoDataFrame, reclass: str) -> gpd.GeoDataF
     output_ds: pandas.GeoDataFrame
         Pandas GeoDataFrame with buffered polygons.
     """
-    input_ds_select = input_ds.loc[input_ds["reclass"] == reclass]
-    output_ds = input_ds_select.buffer((input_ds_select["width_t"]) / 2, cap_style=2)
-    output_ds = gpd.GeoDataFrame(geometry=gpd.GeoSeries(output_ds))
-    output_ds = output_ds.assign(reclass=reclass)
-    output_ds = output_ds.dissolve(by="reclass", aggfunc="sum")
-    output_ds = output_ds.reset_index()
-    return output_ds
+    sel = input_ds.loc[input_ds["reclass"] == reclass].copy()
+    if sel.empty:
+        return gpd.GeoDataFrame(columns=["geometry", "reclass"], crs=input_ds.crs)
+    
+    sel["geometry"] = sel.geometry.buffer(sel["width_t"] / 2)
+    sel["reclass"] = reclass
+
+    return sel[["reclass", "geometry"]]
+
 
 
 def _combine_layers(
     ds_base: gpd.GeoDataFrame, ds_add: gpd.GeoDataFrame
 ) -> gpd.GeoDataFrame:
-    """Combining two GeoDataFrame layers into a single GeoDataFrame layer.
-
-    Parameters
-    ----------
-    ds_base: pandas.GeoDataFrame
-        Pandas GeoDataFrame containing base layer.
-    ds_add: pandas.GeoDataFrame
-        Pandas GeoDataFrame containing additional layer
-
-    Returns
-    -------
-    output_ds: pandas.GeoDataFrame
-        Pandas GeoDataFrame with combined layers.
-    """
-    if not ds_add.empty:
-        # Cut out new layer from base layer
-        ds_out = gpd.overlay(ds_base, ds_add, how="difference")
-        # Add new layer to base layer
-        ds_out = pd.concat([ds_out, ds_add])
-        return ds_out
-    else:
+    if ds_add.empty:
         return ds_base
+
+    if ds_base.crs != ds_add.crs and ds_base.crs is not None:
+        ds_add = ds_add.to_crs(ds_base.crs)
+
+    ds_base = ds_base.copy()
+    ds_add = ds_add.copy()
+    ds_base["geometry"] = ds_base.geometry.buffer(0)
+    ds_add["geometry"] = ds_add.geometry.buffer(0)
+
+    base_cut = gpd.overlay(ds_base, ds_add, how="difference")
+
+    out = pd.concat([base_cut, ds_add], ignore_index=True)
+    out = out.explode(index_parts=False, ignore_index=True)
+
+    return out
