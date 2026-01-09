@@ -6,32 +6,33 @@ on:
   push:
     branches: [master]
     paths:
-      - tests/*
-      - hydromt_uwbm/*
-      - docs/*
+      - tests/**
+      - hydromt_uwbm/**
+      - docs/**
+      - .github/workflows/docs.yml
   pull_request:
     branches: [master]
     paths:
-      - tests/*
-      - hydromt_uwbm/*
-      - docs/*
+      - tests/**
+      - hydromt_uwbm/**
+      - docs/**
+      - .github/workflows/docs.yml
 
 jobs:
-  # Build docs on Linux
-  Docs:
+  docs:
     timeout-minutes: 10
-    name: linux docs
     runs-on: ubuntu-latest
-    env:
-      DOC_VERSION: dev
     defaults:
       run:
         shell: bash -l {0}
-    concurrency:
-      group:  ${{ github.workflow }}-${{ github.ref }}
-      cancel-in-progress: true
+    permissions:
+      contents: write
+      pages: write
     steps:
       - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
       - uses: astral-sh/setup-uv@v7
       - uses: quarto-dev/quarto-actions/setup@v2
 
