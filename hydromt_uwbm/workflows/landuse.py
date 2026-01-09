@@ -86,14 +86,24 @@ def landuse_from_osm(
     lu_map = _clip(region, lu_map)
     lu_map = lu_map.dissolve(by="reclass", aggfunc="sum").reset_index()
 
-    layers = {
-        "unpaved": da_unpaved,
+    layers: dict[str, gpd.GeoDataFrame] = {
         "closed_paved": da_closed_paved,
         "open_paved": da_open_paved,
         "paved_roof": da_paved_roof,
         "water": da_water,
     }
-
+    # Recompute unpaved as difference
+    to_subtract = [
+        layer for layer in layers.values() if layer is not None and not layer.empty
+    ]
+    if to_subtract:
+        all_geom: gpd.GeoDataFrame = pd.concat(to_subtract, ignore_index=True)
+        unpaved_geom = region.geometry.difference(all_geom.union_all())
+        da_unpaved["geometry"] = unpaved_geom
+        da_unpaved = da_unpaved.explode(index_parts=False, ignore_index=True)
+    else:
+        da_unpaved = region.assign(reclass="unpaved")
+    layers.update(unpaved=da_unpaved)
     return lu_map, layers
 
 
