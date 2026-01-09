@@ -212,12 +212,11 @@ def _linestring_buffer(input_ds: gpd.GeoDataFrame, reclass: str) -> gpd.GeoDataF
     sel = input_ds.loc[input_ds["reclass"] == reclass].copy()
     if sel.empty:
         return gpd.GeoDataFrame(columns=["geometry", "reclass"], crs=input_ds.crs)
-    
+
     sel["geometry"] = sel.geometry.buffer(sel["width_t"] / 2)
     sel["reclass"] = reclass
 
     return sel[["reclass", "geometry"]]
-
 
 
 def _combine_layers(

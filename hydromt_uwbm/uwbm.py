@@ -436,7 +436,7 @@ class UWBM(Model):
                 )
             if table["width_t"].dtypes not in ["float64", "int", "int64"]:
                 raise IOError("Provide total width (width_t) values as float or int'")
-            
+
             empty_gdf = gpd.GeoDataFrame(
                 columns=["geometry"], geometry="geometry", crs=self.region.crs
             )
@@ -469,15 +469,15 @@ class UWBM(Model):
             )
         else:
             raise NotImplementedError(f"Source {source} not yet implemented.")
-            
+
         # Add geoms to model
         for name, gdf in landuse_layers.items():
             self.geoms.set(gdf, name=name)
-        
+
         # Add landuse table to tables
         df_landuse = landuse.landuse_table(lu_map=landuse_layers["landuse_map"])
         self.landuse.set(df_landuse, name="landuse_table")
-        
+
         # Add landuse categories to config
         for reclass in df_landuse["reclass"]:
             self.config.set(
