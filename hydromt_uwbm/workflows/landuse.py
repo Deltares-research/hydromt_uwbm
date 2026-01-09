@@ -58,28 +58,17 @@ def landuse_from_osm(
 
     # Buffer and clip created polygons for line layers
     da_closed_paved = _linestring_buffer(lines, "closed_paved")
-    if not da_closed_paved.empty:
-        da_closed_paved["geometry"] = da_closed_paved.geometry.buffer(0)
-        da_closed_paved = da_closed_paved.explode(index_parts=False, ignore_index=True)
-        da_closed_paved = _clip(region, da_closed_paved)
+    da_closed_paved = _clip(region, da_closed_paved)
 
     da_open_paved = _linestring_buffer(lines, "open_paved")
-    if not da_open_paved.empty:
-        da_open_paved["geometry"] = da_open_paved.geometry.buffer(0)
-        da_open_paved = da_open_paved.explode(index_parts=False, ignore_index=True)
-        da_open_paved = _clip(region, da_open_paved)
+    da_open_paved = _clip(region, da_open_paved)
 
     da_water_lines = _linestring_buffer(lines, "water")
-    if not da_water_lines.empty:
-        da_water_lines["geometry"] = da_water_lines.geometry.buffer(0)
-        da_water_lines = da_water_lines.explode(index_parts=False, ignore_index=True)
-        da_water_lines = _clip(region, da_water_lines)
-
+    da_water_lines = _clip(region, da_water_lines)
     da_water_area = _clip(region, water_area)
     if not da_water_area.empty:
         da_water_area["reclass"] = "water"
-
-    # Combine water layers
+    # Combine water from area and lines
     da_water = pd.concat([da_water_area, da_water_lines], ignore_index=True)
 
     # Clip building footprints
@@ -94,8 +83,7 @@ def landuse_from_osm(
         lu_map = _combine_layers(lu_map, layer)
 
     # Final cleanup and dissolve by landuse
-    lu_map["geometry"] = lu_map.geometry.buffer(0)
-    lu_map = lu_map.explode(index_parts=False, ignore_index=True)
+    lu_map = _clip(region, lu_map)
     lu_map = lu_map.dissolve(by="reclass", aggfunc="sum").reset_index()
 
     layers = {
