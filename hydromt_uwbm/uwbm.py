@@ -437,18 +437,15 @@ class UWBM(Model):
             if table["width_t"].dtypes not in ["float64", "int", "int64"]:
                 raise IOError("Provide total width (width_t) values as float or int'")
 
-            empty_gdf = gpd.GeoDataFrame(
-                columns=["geometry"], geometry="geometry", crs=self.region.crs
-            )
-            layers: dict[str, gpd.GeoDataFrame] = {
-                "osm_roads": empty_gdf.copy(),
-                "osm_railways": empty_gdf.copy(),
-                "osm_waterways": empty_gdf.copy(),
-                "osm_buildings": empty_gdf.copy(),
-                "osm_water": empty_gdf.copy(),
-            }
-
-            for layer in layers:
+            layer_names = [
+                "osm_roads",
+                "osm_railways",
+                "osm_waterways",
+                "osm_buildings",
+                "osm_water",
+            ]
+            layers: dict[str, gpd.GeoDataFrame] = {}
+            for layer in layer_names:
                 osm_layer = self.data_catalog.get_geodataframe(
                     layer, geom=self.region, handle_nodata="warn"
                 )
@@ -458,7 +455,7 @@ class UWBM(Model):
                     )
                 layers[layer] = osm_layer
 
-            landuse_layers = landuse.landuse_from_osm(
+            lu_map, layers_clipped = landuse.landuse_from_osm(
                 region=self.region,
                 roads=layers["osm_roads"],
                 railways=layers["osm_railways"],
@@ -471,11 +468,12 @@ class UWBM(Model):
             raise NotImplementedError(f"Source {source} not yet implemented.")
 
         # Add geoms to model
-        for name, gdf in landuse_layers.items():
+        for name, gdf in layers_clipped.items():
             self.geoms.set(gdf, name=name)
+        self.geoms.set(lu_map, name="lu_map")
 
         # Add landuse table to tables
-        df_landuse = landuse.landuse_table(lu_map=landuse_layers["landuse_map"])
+        df_landuse = landuse.landuse_table(lu_map=lu_map)
         self.landuse.set(df_landuse, name="landuse_table")
 
         # Add landuse categories to config
