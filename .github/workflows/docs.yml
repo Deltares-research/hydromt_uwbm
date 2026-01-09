@@ -9,12 +9,14 @@ on:
       - tests/**
       - hydromt_uwbm/**
       - docs/**
+      - .github/workflows/docs.yml
   pull_request:
     branches: [master]
     paths:
       - tests/**
       - hydromt_uwbm/**
       - docs/**
+      - .github/workflows/docs.yml
 
 jobs:
   docs:
