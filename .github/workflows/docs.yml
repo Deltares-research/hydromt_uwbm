@@ -6,15 +6,15 @@ on:
   push:
     branches: [master]
     paths:
-      - tests/*
-      - hydromt_uwbm/*
-      - docs/*
+      - tests/**
+      - hydromt_uwbm/**
+      - docs/**
   pull_request:
     branches: [master]
     paths:
-      - tests/*
-      - hydromt_uwbm/*
-      - docs/*
+      - tests/**
+      - hydromt_uwbm/**
+      - docs/**
 
 jobs:
   docs:
