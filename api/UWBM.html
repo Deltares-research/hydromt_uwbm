@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.7.32">
+<meta name="generator" content="quarto-1.8.26">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
@@ -66,14 +66,15 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <meta name="quarto:offset" content="../">
 <script src="../site_libs/quarto-html/quarto.js" type="module"></script>
 <script src="../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../site_libs/quarto-html/axe/axe-check.js" type="module"></script>
 <script src="../site_libs/quarto-html/popper.min.js"></script>
 <script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
 <script src="../site_libs/quarto-html/anchor.min.js"></script>
 <link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="../site_libs/quarto-html/quarto-syntax-highlighting-37eea08aefeeee20ff55810ff984fec1.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-587c61ba64f3a5504c4d52d930310e48.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../site_libs/bootstrap/bootstrap-adc86e7bd9615c2685d0123ba2ce0656.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="../site_libs/bootstrap/bootstrap-320e1ef9edb861ce49b497581fe021d4.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -113,7 +114,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
       <div class="navbar-container container-fluid">
       <div class="navbar-brand-container mx-auto">
     <a href="../index.html" class="navbar-brand navbar-brand-logo">
-    <img src="../_static/logo.png" alt="" class="navbar-logo">
+    <img src="../assets/logo.jpeg" alt="" class="navbar-logo light-content">
+    <img src="../assets/logo.jpeg" alt="" class="navbar-logo dark-content">
     </a>
     <a class="navbar-brand" href="../index.html">
     <span class="navbar-title">HydroMT UWBM</span>
@@ -248,7 +250,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 <section id="hydromt_uwbm.UWBM" class="level1" data-number="1">
 <h1 data-number="1"><span class="header-section-number">1</span> UWBM</h1>
-<div class="sourceCode" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>UWBM(root<span class="op">=</span><span class="va">None</span>, mode<span class="op">=</span><span class="st">'w+'</span>, data_libs<span class="op">=</span><span class="va">None</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>UWBM(root<span class="op">=</span><span class="va">None</span>, mode<span class="op">=</span><span class="st">'w+'</span>, data_libs<span class="op">=</span><span class="va">None</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>HydroMT UWBM model class.</p>
 <p>This class provides a framework for setting up and running the Urban Water Balance Model (UWBM) as part of the HydroMT plugin. It manages the model region, geometries, landuse, forcing data, and configuration parameters.</p>
 <section id="methods" class="level2" data-number="1.1">
@@ -281,7 +283,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </table>
 <section id="hydromt_uwbm.UWBM.setup_landuse" class="level3" data-number="1.1.1">
 <h3 data-number="1.1.1" class="anchored" data-anchor-id="hydromt_uwbm.UWBM.setup_landuse"><span class="header-section-number">1.1.1</span> setup_landuse</h3>
-<div class="sourceCode" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>UWBM.setup_landuse(source<span class="op">=</span><span class="st">'osm'</span>, landuse_mapping_fn<span class="op">=</span><span class="va">None</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>UWBM.setup_landuse(source<span class="op">=</span><span class="st">'osm'</span>, landuse_mapping_fn<span class="op">=</span><span class="va">None</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Generate landuse map and associated tables for the model region.</p>
 <p>This function creates a polygon landuse map and a landuse table based on the provided base files and mapping. It also updates the configuration with landuse area and fraction statistics.</p>
 <section id="adds-model-layers" class="level4 doc-section doc-section-adds-model-layers" data-number="1.1.1.1">
@@ -406,7 +408,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="hydromt_uwbm.UWBM.setup_pet_forcing" class="level3" data-number="1.1.2">
 <h3 data-number="1.1.2" class="anchored" data-anchor-id="hydromt_uwbm.UWBM.setup_pet_forcing"><span class="header-section-number">1.1.2</span> setup_pet_forcing</h3>
-<div class="sourceCode" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>UWBM.setup_pet_forcing(temp_pet_fn<span class="op">=</span><span class="st">'era5_hourly'</span>, pet_method<span class="op">=</span><span class="st">'debruin'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>UWBM.setup_pet_forcing(temp_pet_fn<span class="op">=</span><span class="st">'era5_hourly'</span>, pet_method<span class="op">=</span><span class="st">'debruin'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Generate area-averaged, tabular reference evapotranspiration (PET) forcing for the model region.</p>
 <p>This function adds a model layer for reference evapotranspiration:</p>
 <ul>
@@ -510,7 +512,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="hydromt_uwbm.UWBM.setup_precip_forcing" class="level3" data-number="1.1.3">
 <h3 data-number="1.1.3" class="anchored" data-anchor-id="hydromt_uwbm.UWBM.setup_precip_forcing"><span class="header-section-number">1.1.3</span> setup_precip_forcing</h3>
-<div class="sourceCode" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>UWBM.setup_precip_forcing(precip_fn<span class="op">=</span><span class="st">'era5_hourly'</span>, <span class="op">**</span>kwargs)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>UWBM.setup_precip_forcing(precip_fn<span class="op">=</span><span class="st">'era5_hourly'</span>, <span class="op">**</span>kwargs)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Generate area-averaged, tabular precipitation forcing for geom.</p>
 <p>Adds model layer:</p>
 <ul>
@@ -552,7 +554,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="hydromt_uwbm.UWBM.setup_project" class="level3" data-number="1.1.4">
 <h3 data-number="1.1.4" class="anchored" data-anchor-id="hydromt_uwbm.UWBM.setup_project"><span class="header-section-number">1.1.4</span> setup_project</h3>
-<div class="sourceCode" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>UWBM.setup_project(region, name, t_start, t_end, ts<span class="op">=</span><span class="dv">3600</span>, crs<span class="op">=</span><span class="dv">3857</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>UWBM.setup_project(region, name, t_start, t_end, ts<span class="op">=</span><span class="dv">3600</span>, crs<span class="op">=</span><span class="dv">3857</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Setup the project geometry and basic configuration.</p>
 <p>This function initializes the model region from a vector, sets the time range, timestep, coordinate reference system, and project name.</p>
 <section id="parameters-3" class="level4 doc-section doc-section-parameters" data-number="1.1.4.1">
@@ -727,13 +729,14 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
       e.clearSelection();
     }
     const getTextToCopy = function(trigger) {
-        const codeEl = trigger.previousElementSibling.cloneNode(true);
-        for (const childEl of codeEl.children) {
-          if (isCodeAnnotation(childEl)) {
-            childEl.remove();
-          }
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
         }
-        return codeEl.innerText;
+      }
+      return codeEl.innerText;
     }
     const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
       text: getTextToCopy
@@ -1079,7 +1082,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <footer class="footer">
   <div class="nav-footer">
     <div class="nav-footer-left">
-<p>Made possible by: <a href="https://www.deltares.nl/en" target="_blank" rel="noreferrer noopener"> &lt;img src=“/_static/images/deltares-blue.svg” # TODO !! alt=“Deltares” style=“height: 40px;” /&gt; </a></p>
+<p>Made possible by: <a href="https://www.deltares.nl/en" target="_blank" rel="noreferrer noopener"> <img src="../assets/deltares-blue.svg" alt="Deltares" style="height: 40px;"> </a></p>
 </div>   
     <div class="nav-footer-center">
       &nbsp;
